@@ -305,7 +305,7 @@ for locus1 in highFreqLoci.index:
 
 ## Write out OncoMerge output file
 finalMutFile = pd.concat([pd.DataFrame(keepers).transpose().loc[keepLofGof].sort_index(),lociCNA.loc[keepLoc].sort_index()])
-finalMutFile.to_csv(args.run_name+'_'+args.tumor_type+'_finalMutFile_deep_filtered_args.min_mut_freq_'+str(args.min_mut_freq)+'.csv')
+finalMutFile.to_csv(args.run_name+'_'+args.tumor_type+'_finalMutFile_deep_filtered_mmf_'+str(args.min_mut_freq)+'.csv')
 
 ## Write out loci
 # Prepare for writing out
