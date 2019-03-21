@@ -271,7 +271,7 @@ for i in range(numPermutes):
 lofGofSig = pd.DataFrame(columns=['Symbol','Type','Freq','Emp.p_value','q_value'], index=calcSig)
 for sig1 in calcSig:
     if sig1.find('LoF')>0:
-        lofGofSig['Symbol'].loc[sig1] = n1.index[n1['Gene ID']==int(sig1.rstrip('_LoF'))][0]
+        lofGofSig['Symbol'].loc[sig1] = n1.index[n1[args.label_name]==int(sig1.rstrip('_LoF'))][0]
         lofGofSig['Type'].loc[sig1] = 'LoF'
         lofGofSig['Freq'].loc[sig1] = freq[sig1.rstrip('_LoF')]['LoF']
         lofGofSig['Emp.p_value'].loc[sig1] = float(len([i for i in permMF_neg if i>=freq[sig1.rstrip('_LoF')]['LoF']]))/len(permMF_neg)
