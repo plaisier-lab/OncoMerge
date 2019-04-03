@@ -221,6 +221,7 @@ for loci1 in ampLoci:
                     pamLofGof[str(s1)][str(s1)+'_GoF'] = tmpGoF
 
 print('Screening for frequency...')
+keepPAM = []
 keepers = {}
 calcSig = []
 for s1 in pamLofGof:
@@ -231,9 +232,10 @@ for s1 in pamLofGof:
         freqPos = freq[s1]['CNAamp']
         freqGoF = freq[s1]['GoF']
         if freqLoF>=0.05 or freqGoF>=0.05 or freqPAM>=0.05:
-            print(n1.index[n1[args.label_name]==int(s1)][0]+'('+str(s1),') - FreqPAM:', round(freqPAM,3), 'FreqNeg:', round(freqNeg,3), 'FreqLoF:', round(freqLoF,3), 'FreqPos:', round(freqPos,3),'FreqGoF:', round(freqGoF,3))
+            print(''.join([str(i) for i in [n1.index[n1[args.label_name]==int(s1)][0]+' ('+str(s1),') - FreqPAM: ', round(freqPAM,3), ' | FreqNeg: ', round(freqNeg,3), ' | FreqLoF: ', round(freqLoF,3), ' | FreqPos: ', round(freqPos,3),' | FreqGoF: ', round(freqGoF,3)]]))
         if freqPAM>0 and freqPAM>=args.min_mut_freq and int(s1) in somMutPoint and int(s1) in sigPAMs:
             keepers[str(s1)+'_PAM'] = pamLofGof[str(s1)][str(s1)+'_PAM']
+            keepPAM.append(str(s1)+'_PAM')
         if str(s1)+'_LoF' in pamLofGof[str(s1)] and freqLoF>freqGoF and freqLoF>freqPAM and freqLoF>=args.min_mut_freq and len(delGenes)>0:
             keepers[str(s1)+'_LoF'] = pamLofGof[str(s1)][str(s1)+'_LoF']
             calcSig.append(str(s1)+'_LoF')
@@ -304,7 +306,7 @@ for locus1 in highFreqLoci.index:
         keepLoc.append(locus1)
 
 ## Write out OncoMerge output file
-finalMutFile = pd.concat([pd.DataFrame(keepers).transpose().loc[keepLofGof].sort_index(),lociCNA.loc[keepLoc].sort_index()])
+finalMutFile = pd.concat([pd.DataFrame(keepers).transpose().loc[keepPAM].sort_index(),pd.DataFrame(keepers).transpose().loc[keepLofGof].sort_index(),lociCNA.loc[keepLoc].sort_index()])
 finalMutFile.to_csv(args.run_name+'_'+args.tumor_type+'_finalMutFile_deep_filtered_mmf_'+str(args.min_mut_freq)+'.csv')
 
 ## Write out loci

@@ -102,3 +102,20 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+pathways/workspace/cleanUpGO.py
+pathways/workspace/gene2go
+pathways/workspace/gene2go.gz
+pathways/workspace/getKEGG_hsa.R
+pathways/workspace/goa_human.gaf
+pathways/workspace/goa_human.gaf.gz
+pathways/workspace/humanCyc.py
+pathways/workspace/NCI-Nature-Curated-final-1.bp3.owl
+pathways/workspace/NCI-Nature-Curated-final.bp3.owl.gz
+pathways/workspace/nciPID_conversion.py
+pathways/workspace/PathwayCommons10.humancyc.BIOPAX.owl
+pathways/workspace/PathwayCommons10.humancyc.BIOPAX.owl.gz
+pathways/workspace/uniprot.txt.gz
+pathways/workspace/uniprot.txt
+pathways/workspace/symbol2entrez.csv
+pathways/workspace/PathwayCommons10.humancyc.hgnc.gmt.gz
+pathways/workspace/PathwayCommons10.humancyc.hgnc.gmt
