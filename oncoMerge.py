@@ -231,7 +231,7 @@ for s1 in pamLofGof:
         freqLoF = freq[s1]['LoF']
         freqPos = freq[s1]['CNAamp']
         freqGoF = freq[s1]['GoF']
-        if freqLoF>=0.05 or freqGoF>=0.05 or freqPAM>=0.05:
+        if freqLoF>=args.min_mut_freq or freqGoF>=args.min_mut_freq or freqPAM>=args.min_mut_freq:
             print(''.join([str(i) for i in [n1.index[n1[args.label_name]==int(s1)][0]+' ('+str(s1),') - FreqPAM: ', round(freqPAM,3), ' | FreqNeg: ', round(freqNeg,3), ' | FreqLoF: ', round(freqLoF,3), ' | FreqPos: ', round(freqPos,3),' | FreqGoF: ', round(freqGoF,3)]]))
         if freqPAM>0 and freqPAM>=args.min_mut_freq and int(s1) in somMutPoint and int(s1) in sigPAMs:
             keepers[str(s1)+'_PAM'] = pamLofGof[str(s1)][str(s1)+'_PAM']
