@@ -251,7 +251,7 @@ def singlePermute(somMutsMF, somCNAsMF):
     tmp1 = pd.Series(np.random.permutation(somMutsMF), index=somMutsMF.index)
     tmp2 = pd.Series(np.random.permutation(somCNAsMF), index=somCNAsMF.index)
     subset1 = set(somMutsMF.index).intersection(somCNAsMF.index)
-    return list(tmp1[subset1]+tmp2[subset1])
+    return list(tmp1.loc[subset1]+tmp2.loc[subset1])
 
 # Deletions
 print('\tPermuting deletions...')
