@@ -239,7 +239,7 @@ for s1 in pamLofGof:
         if str(s1)+'_LoF' in pamLofGof[str(s1)] and freqLoF>freqGoF and freqLoF>freqPAM and freqLoF>=args.min_mut_freq and len(delGenes)>0:
             keepers[str(s1)+'_LoF'] = pamLofGof[str(s1)][str(s1)+'_LoF']
             calcSig.append(str(s1)+'_LoF')
-        if str(s1)+'_LoF' in pamLofGof[str(s1)] and freqLoF<freqGoF and freqGoF>freqPAM and freqGoF>=args.min_mut_freq and len(ampGenes)>0:
+        if str(s1)+'_GoF' in pamLofGof[str(s1)] and freqLoF<freqGoF and freqGoF>freqPAM and freqGoF>=args.min_mut_freq and len(ampGenes)>0:
             keepers[str(s1)+'_GoF'] = pamLofGof[str(s1)][str(s1)+'_GoF']
             calcSig.append(str(s1)+'_GoF')
 
@@ -280,7 +280,7 @@ for sig1 in calcSig:
     elif sig1.find('GoF')>0:
         lofGofSig['Type'].loc[sig1] = 'GoF'
         lofGofSig['Freq'].loc[sig1] = freq[sig1.rstrip('_GoF')]['GoF']
-        lofGofSig['Emp.p_value'].loc[sig1] = float(len([i for i in permMF_pos if i>=freq[sig1.rstrip('_LoF')]['LoF']]))/len(permMF_pos)
+        lofGofSig['Emp.p_value'].loc[sig1] = float(len([i for i in permMF_pos if i>=freq[sig1.rstrip('_GoF')]['GoF']]))/len(permMF_pos)
 
 lofGofSig['q_value'] = multipletests(lofGofSig['Emp.p_value'], 0.05, method='fdr_bh')[1]
 lofGofSig.sort_values('q_value').to_csv(args.run_name+'_'+args.tumor_type+'_'+str(args.min_mut_freq)+'_LoF_GoF_sig.csv')
