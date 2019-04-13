@@ -53,7 +53,7 @@ n1 = n1.drop_duplicates()
 
 # Should pull these from mutSig2CV file
 mutSig2CV = pd.read_csv(args.mutsig2_cv,index_col=1,sep='\t')
-sigPAMs = [n1.loc[i][0] for i in list(mutSig2CV.index[mutSig2CV['q']<=0.05])]
+sigPAMs = [n1.loc[i][0] for i in list(mutSig2CV.index[mutSig2CV['q']<=0.05]) if i in n1.index]
 
 # Get list of significantly CNA amplified genes
 ampGenes = []
