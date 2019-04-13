@@ -137,10 +137,8 @@ print('Combining deletion loci...')
 for loci1 in delLoci:
     # Get matrix of CNAs for genes in loci
     dt = negD1.loc[delLoci[loci1]]
-
     # Get unique rows
     dedup = dt.drop_duplicates(keep='first')
-
     # Get genes which match and add to output dictionaries
     for i in range(len(dedup.index)):
         cnaName = loci1+'_'+str(i)+'_CNAdel'
@@ -151,15 +149,14 @@ print('Combining amplification loci..')
 for loci1 in ampLoci:
     # Get matrix of CNAs for genes in loci
     dt = posD1.loc[ampLoci[loci1]]
-
     # Get unique rows
     dedup = dt.drop_duplicates(keep='first')
-
     # Get genes which match and add to output dictionaries
     for i in range(len(dedup.index)):
         cnaName = loci1+'_'+str(i)+'_CNAamp'
         lociCNA.loc[cnaName] = dedup.iloc[i]
         lociCNAgenes[cnaName] = [j for j in dt.index if dedup.iloc[i].equals(dt.loc[j])]
+        
 print(lociCNA.shape)
 
 # Make combined matrix
@@ -325,6 +322,7 @@ finalMutFile.to_csv(args.run_name+'_'+args.tumor_type+'_finalMutFile_deep_filter
 writeLoci = ['Locus_name,Genes']
 for locus1 in lociCNAgenes:
     writeLoci.append(locus1+','+' '.join([str(i) for i in lociCNAgenes[locus1]]))
+    
 # Write out file
 with open(args.run_name+'_'+args.tumor_type+'_'+str(args.min_mut_freq)+'_CNA_loci.csv','w') as outFile:
     outFile.write('\n'.join(writeLoci))
