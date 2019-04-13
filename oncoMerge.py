@@ -102,8 +102,8 @@ somMuts = somMuts[list(set(d1.columns).intersection(somMuts.columns))]
 d1 = d1[list(set(d1.columns).intersection(somMuts.columns))]
 
 # Cutoff somatic mutations based on the minimum mutation frequency (mf) 
-freq = somMuts.sum(axis=1)/len(list(somMuts.columns))
-somMutPoint = freq[freq>=args.min_mut_freq].index
+freq1 = somMuts.sum(axis=1)/len(list(somMuts.columns))
+somMutPoint = freq1[freq1>=args.min_mut_freq].index
 print(somMuts.shape)
 
 # Get rid of duplicated rows
