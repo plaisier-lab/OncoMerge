@@ -95,6 +95,17 @@ for i in lociThresh['Cytoband']:
         include.append(True)
     else:
         include.append(False)
+        if i in ampLoci:
+            locilist = list(ampLoci.keys())
+            for a in locilist:
+                if i in a:
+                    ampLoci.pop(a)
+        if i in delLoci:
+            locilist = list(delLoci.keys())
+            for a in locilist:
+                if i in a:
+                    delLoci.pop(a)
+
 d1 = d1.loc[lociThresh[include].index]
 
 # Make sure somMuts and gistic have same samples
