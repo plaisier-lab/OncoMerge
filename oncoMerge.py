@@ -87,7 +87,7 @@ with open(args.thresh_path,'r') as inFile:
 d1 = pd.read_csv(args.thresh_path,index_col=0,sep='\t',usecols=[i for i in range(numCols1) if not i in [0,2]])
 d1.columns = [i[:12] for i in d1.columns]
 
-# Removing sex chromosomes (issues in CNA analysis)
+# Removing sex chromosomes (issues in CNA analysis) from d1
 lociThresh = pd.read_csv(args.thresh_path,index_col=0,sep='\t',usecols=[1,2])
 include = []
 for i in lociThresh['Cytoband']:
@@ -95,18 +95,18 @@ for i in lociThresh['Cytoband']:
         include.append(True)
     else:
         include.append(False)
-        if i in ampLoci:
-            locilist = list(ampLoci.keys())
-            for a in locilist:
-                if i in a:
-                    ampLoci.pop(a)
-        if i in delLoci:
-            locilist = list(delLoci.keys())
-            for a in locilist:
-                if i in a:
-                    delLoci.pop(a)
 
 d1 = d1.loc[lociThresh[include].index]
+
+# Removing sex chromosomes from ampLoci
+delMes = [i for i in ampLoci if i[0]=='X' or i[0]=='Y']
+for delMe in delMes:
+    del ampLoci[delMe]
+
+# Removing sex chromosomes from delLoci
+delMes = [i for i in delLoci if i[0]=='X' or i[0]=='Y']
+for delMe in delMes:
+    del delLoci[delMe]
 
 # Make sure somMuts and gistic have same samples
 somMuts = somMuts[list(set(d1.columns).intersection(somMuts.columns))]
