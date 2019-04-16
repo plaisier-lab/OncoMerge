@@ -296,6 +296,17 @@ lofGofSig.sort_values('q_value').to_csv(args.run_name+'_'+args.tumor_type+'_'+st
 ## Screen out LoF and GoF that don't meet significance cutoffs
 keepLofGof = list(lofGofSig.index[lofGofSig['q_value']<=args.perm_pv])
 
+## Screen out PAMs that are LoF/GoF
+newKeepPAM = []
+for pam1 in keepPAM:
+    found = 0
+    tmp1 = pam1.split('_')[0]
+    for lofGof in keepLofGof:
+        if tmp1==lofGof.split('_')[0]:
+            found = 1
+    if found==0:
+        newKeepPAM.append(pam1)
+        
 ## Screen out loci that have a representative gene
 # Mutations that are at or above minimum mutation frequency cutoff
 highFreqLoci = lociCNA[lociCNA.mean(axis=1)>=args.min_mut_freq]
@@ -314,7 +325,7 @@ for locus1 in highFreqLoci.index:
         keepLoc.append(locus1)
 
 ## Write out OncoMerge output file
-finalMutFile = pd.concat([pd.DataFrame(keepers).transpose().loc[keepPAM].sort_index(),pd.DataFrame(keepers).transpose().loc[keepLofGof].sort_index(),lociCNA.loc[keepLoc].sort_index()])
+finalMutFile = pd.concat([pd.DataFrame(keepers).transpose().loc[newKeepPAM].sort_index(),pd.DataFrame(keepers).transpose().loc[keepLofGof].sort_index(),lociCNA.loc[keepLoc].sort_index()])
 finalMutFile.to_csv(args.run_name+'_'+args.tumor_type+'_finalMutFile_deep_filtered_mmf_'+str(args.min_mut_freq)+'.csv')
 
 ## Write out loci
