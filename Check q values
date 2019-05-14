@@ -1,0 +1,16 @@
+# for comparing the Benjamini Hochberg results difference in R and Python
+
+ # First in Python, the following code was used:
+path = 
+a = pd.read_csv(path)
+a['q_value'] = multipletests(a['Emp.p_value'], 0.05, method='fdr_bh')[1]
+a.to_csv('output/oncoMerge_Changes/Lof_Gof_sig/Changed_ACC_0.05_LoF_GoF_sig.csv')
+
+
+
+ # Then in R:
+setwd("D:/Dropbox (ASU)/TCGA_MutCNA/output/oncoMerge_Changes/LoF_GoF_sig")
+lgs = read.csv("Changed_ACC_0.05_LoF_GoF_sig.csv")
+lgs[,7] = p.adjust(lgs[,5], method = "hochberg")
+write.csv(lgs, "R_Changed_ACC_0.05_LoF_GoF_sig.csv")
+
