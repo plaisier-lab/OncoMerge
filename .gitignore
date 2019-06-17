@@ -119,3 +119,6 @@ pathways/workspace/uniprot.txt
 pathways/workspace/symbol2entrez.csv
 pathways/workspace/PathwayCommons10.humancyc.hgnc.gmt.gz
 pathways/workspace/PathwayCommons10.humancyc.hgnc.gmt
+*~
+*.swp
+*.swo
