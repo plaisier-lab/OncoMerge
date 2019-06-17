@@ -101,7 +101,7 @@ d1 = d1.loc[lociThresh[include].index]
 somMuts = somMuts[list(set(d1.columns).intersection(somMuts.columns))]
 d1 = d1[list(set(d1.columns).intersection(somMuts.columns))]
 
-# Cutoff somatic mutations based on the minimum mutation frequency (mf) 
+# Cutoff somatic mutations based on the minimum mutation frequency (mf)
 freq = somMuts.sum(axis=1)/len(list(somMuts.columns))
 somMutPoint = freq[freq>=args.min_mut_freq].index
 print(somMuts.shape)
@@ -280,7 +280,7 @@ for sig1 in calcSig:
     elif sig1.find('GoF')>0:
         lofGofSig['Type'].loc[sig1] = 'GoF'
         lofGofSig['Freq'].loc[sig1] = freq[sig1.rstrip('_GoF')]['GoF']
-        lofGofSig['Emp.p_value'].loc[sig1] = float(len([i for i in permMF_pos if i>=freq[sig1.rstrip('_LoF')]['LoF']]))/len(permMF_pos)
+        lofGofSig['Emp.p_value'].loc[sig1] = float(len([i for i in permMF_pos if i>=freq[sig1.rstrip('_GoF')]['GoF']]))/len(permMF_pos)
 
 lofGofSig['q_value'] = multipletests(lofGofSig['Emp.p_value'], 0.05, method='fdr_bh')[1]
 lofGofSig.sort_values('q_value').to_csv(args.run_name+'_'+args.tumor_type+'_'+str(args.min_mut_freq)+'_LoF_GoF_sig.csv')
@@ -319,3 +319,4 @@ with open(args.run_name+'_'+args.tumor_type+'_'+str(args.min_mut_freq)+'_CNA_loc
     outFile.write('\n'.join(writeLoci))
 
 print('Done.')
+
