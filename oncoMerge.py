@@ -87,7 +87,7 @@ with open(args.thresh_path,'r') as inFile:
 d1 = pd.read_csv(args.thresh_path,index_col=0,sep='\t',usecols=[i for i in range(numCols1) if not i in [0,2]])
 d1.columns = [i[:12] for i in d1.columns]
 
-# Removing sex chromosomes (issues in CNA analysis)
+# Removing sex chromosomes (issues in CNA analysis) from d1
 lociThresh = pd.read_csv(args.thresh_path,index_col=0,sep='\t',usecols=[1,2])
 include = []
 for i in lociThresh['Cytoband']:
@@ -95,15 +95,26 @@ for i in lociThresh['Cytoband']:
         include.append(True)
     else:
         include.append(False)
+
 d1 = d1.loc[lociThresh[include].index]
+
+# Removing sex chromosomes from ampLoci
+delMes = [i for i in ampLoci if i[0]=='X' or i[0]=='Y']
+for delMe in delMes:
+    del ampLoci[delMe]
+
+# Removing sex chromosomes from delLoci
+delMes = [i for i in delLoci if i[0]=='X' or i[0]=='Y']
+for delMe in delMes:
+    del delLoci[delMe]
 
 # Make sure somMuts and gistic have same samples
 somMuts = somMuts[list(set(d1.columns).intersection(somMuts.columns))]
 d1 = d1[list(set(d1.columns).intersection(somMuts.columns))]
 
 # Cutoff somatic mutations based on the minimum mutation frequency (mf)
-freq = somMuts.sum(axis=1)/len(list(somMuts.columns))
-somMutPoint = freq[freq>=args.min_mut_freq].index
+freq1 = somMuts.sum(axis=1)/len(list(somMuts.columns))
+somMutPoint = freq1[freq1>=args.min_mut_freq].index
 print(somMuts.shape)
 
 # Get rid of duplicated rows
@@ -126,10 +137,8 @@ print('Combining deletion loci...')
 for loci1 in delLoci:
     # Get matrix of CNAs for genes in loci
     dt = negD1.loc[delLoci[loci1]]
-
     # Get unique rows
     dedup = dt.drop_duplicates(keep='first')
-
     # Get genes which match and add to output dictionaries
     for i in range(len(dedup.index)):
         cnaName = loci1+'_'+str(i)+'_CNAdel'
@@ -140,15 +149,14 @@ print('Combining amplification loci..')
 for loci1 in ampLoci:
     # Get matrix of CNAs for genes in loci
     dt = posD1.loc[ampLoci[loci1]]
-
     # Get unique rows
     dedup = dt.drop_duplicates(keep='first')
-
     # Get genes which match and add to output dictionaries
     for i in range(len(dedup.index)):
         cnaName = loci1+'_'+str(i)+'_CNAamp'
         lociCNA.loc[cnaName] = dedup.iloc[i]
         lociCNAgenes[cnaName] = [j for j in dt.index if dedup.iloc[i].equals(dt.loc[j])]
+
 print(lociCNA.shape)
 
 # Make combined matrix
@@ -231,7 +239,7 @@ for s1 in pamLofGof:
         freqLoF = freq[s1]['LoF']
         freqPos = freq[s1]['CNAamp']
         freqGoF = freq[s1]['GoF']
-        if freqLoF>=0.05 or freqGoF>=0.05 or freqPAM>=0.05:
+        if freqLoF>=args.min_mut_freq or freqGoF>=args.min_mut_freq or freqPAM>=args.min_mut_freq:
             print(''.join([str(i) for i in [n1.index[n1[args.label_name]==int(s1)][0]+' ('+str(s1),') - FreqPAM: ', round(freqPAM,3), ' | FreqNeg: ', round(freqNeg,3), ' | FreqLoF: ', round(freqLoF,3), ' | FreqPos: ', round(freqPos,3),' | FreqGoF: ', round(freqGoF,3)]]))
         if freqPAM>0 and freqPAM>=args.min_mut_freq and int(s1) in somMutPoint and int(s1) in sigPAMs:
             keepers[str(s1)+'_PAM'] = pamLofGof[str(s1)][str(s1)+'_PAM']
@@ -239,7 +247,7 @@ for s1 in pamLofGof:
         if str(s1)+'_LoF' in pamLofGof[str(s1)] and freqLoF>freqGoF and freqLoF>freqPAM and freqLoF>=args.min_mut_freq and len(delGenes)>0:
             keepers[str(s1)+'_LoF'] = pamLofGof[str(s1)][str(s1)+'_LoF']
             calcSig.append(str(s1)+'_LoF')
-        if str(s1)+'_LoF' in pamLofGof[str(s1)] and freqLoF<freqGoF and freqGoF>freqPAM and freqGoF>=args.min_mut_freq and len(ampGenes)>0:
+        if str(s1)+'_GoF' in pamLofGof[str(s1)] and freqLoF<freqGoF and freqGoF>freqPAM and freqGoF>=args.min_mut_freq and len(ampGenes)>0:
             keepers[str(s1)+'_GoF'] = pamLofGof[str(s1)][str(s1)+'_GoF']
             calcSig.append(str(s1)+'_GoF')
 
@@ -251,7 +259,7 @@ def singlePermute(somMutsMF, somCNAsMF):
     tmp1 = pd.Series(np.random.permutation(somMutsMF), index=somMutsMF.index)
     tmp2 = pd.Series(np.random.permutation(somCNAsMF), index=somCNAsMF.index)
     subset1 = set(somMutsMF.index).intersection(somCNAsMF.index)
-    return list(tmp1[subset1]+tmp2[subset1])
+    return list(tmp1.loc[subset1]+tmp2.loc[subset1])
 
 # Deletions
 print('\tPermuting deletions...')
@@ -288,6 +296,17 @@ lofGofSig.sort_values('q_value').to_csv(args.run_name+'_'+args.tumor_type+'_'+st
 ## Screen out LoF and GoF that don't meet significance cutoffs
 keepLofGof = list(lofGofSig.index[lofGofSig['q_value']<=args.perm_pv])
 
+## Screen out PAMs that are LoF/GoF
+newKeepPAM = []
+for pam1 in keepPAM:
+    found = 0
+    tmp1 = pam1.split('_')[0]
+    for lofGof in keepLofGof:
+        if tmp1==lofGof.split('_')[0]:
+            found = 1
+    if found==0:
+        newKeepPAM.append(pam1)
+
 ## Screen out loci that have a representative gene
 # Mutations that are at or above minimum mutation frequency cutoff
 highFreqLoci = lociCNA[lociCNA.mean(axis=1)>=args.min_mut_freq]
@@ -306,7 +325,7 @@ for locus1 in highFreqLoci.index:
         keepLoc.append(locus1)
 
 ## Write out OncoMerge output file
-finalMutFile = pd.concat([pd.DataFrame(keepers).transpose().loc[keepPAM].sort_index(),pd.DataFrame(keepers).transpose().loc[keepLofGof].sort_index(),lociCNA.loc[keepLoc].sort_index()])
+finalMutFile = pd.concat([pd.DataFrame(keepers).transpose().loc[newKeepPAM].sort_index(),pd.DataFrame(keepers).transpose().loc[keepLofGof].sort_index(),lociCNA.loc[keepLoc].sort_index()])
 finalMutFile.to_csv(args.run_name+'_'+args.tumor_type+'_finalMutFile_deep_filtered_mmf_'+str(args.min_mut_freq)+'.csv')
 
 ## Write out loci
@@ -314,9 +333,9 @@ finalMutFile.to_csv(args.run_name+'_'+args.tumor_type+'_finalMutFile_deep_filter
 writeLoci = ['Locus_name,Genes']
 for locus1 in lociCNAgenes:
     writeLoci.append(locus1+','+' '.join([str(i) for i in lociCNAgenes[locus1]]))
+
 # Write out file
 with open(args.run_name+'_'+args.tumor_type+'_'+str(args.min_mut_freq)+'_CNA_loci.csv','w') as outFile:
     outFile.write('\n'.join(writeLoci))
 
 print('Done.')
-
