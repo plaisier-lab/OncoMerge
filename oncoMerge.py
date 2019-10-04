@@ -148,7 +148,7 @@ d1 = d1[list(set(d1.columns).intersection(somMuts.columns))]
 d1 = d1[~d1.index.duplicated(keep='first')]
 
 ## Fill out summary matrix
-summaryMatrix = pd.DataFrame(index= list(set([gene for locus in ampLoci.values() for gene in locus] + [gene for locus in delLoci.values() for gene in locus] + list(somMuts.index))), columns = ['Symbol', 'PAM_freq', 'MutSig2CV_qvalue', 'CNA_freq', 'CNA_locus', 'CNA_type', 'GISTIC_residual_q_value', 'Act_freq', 'Act_shallow_coincidence_rate', 'LoF_freq', 'LoF_shallow_coincidence_rate', 'OM_type_selected', 'OM_empirical_p_value', 'OM_empirical_q_value',  'Final_mutation_type', 'Final_freq', 'Delta_over_PAM'])
+summaryMatrix = pd.DataFrame(index= list(set([gene for locus in ampLoci.values() for gene in locus] + [gene for locus in delLoci.values() for gene in locus] + list(somMuts.index))), columns = ['Symbol', 'PAM_freq', 'MutSig2CV_qvalue', 'CNA_freq', 'CNA_locus', 'CNA_type', 'GISTIC_residual_q_value', 'Act_freq', 'Act_shallow_coincidence_rate', 'LoF_freq', 'LoF_shallow_coincidence_rate', 'OM_type_selected', 'OM_empirical_p_value', 'OM_empirical_q_value', 'Genes_in_locus',  'Final_mutation_type', 'Final_freq', 'Delta_over_PAM'])
 
 # Add gene symbols
 toMatch = [i for i in summaryMatrix.index if i in n1.values]
@@ -466,9 +466,11 @@ for locus1 in LofActLoci_dict.keys():
             summaryMatrix.loc[int(gene1), 'Final_mutation_type'] = mutType1
             summaryMatrix.loc[int(gene1), 'Final_freq'] = summaryMatrix.loc[int(gene1), mutType1+'_freq']
             summaryMatrix.loc[int(gene1), 'Delta_over_PAM'] = summaryMatrix.loc[int(gene1), mutType1+'_freq'] - summaryMatrix.loc[int(gene1), 'PAM_freq']
+            summaryMatrix.loc[int(gene1), 'Genes_in_locus'] = len(LofActLoci_dict[locus1])
     else:
         for mut in LofActLoci_dict[locus1]:
             gene1, mutType1 = mut.split('_')
+            summaryMatrix.loc[int(gene1), 'Genes_in_locus'] = len(LofActLoci_dict[locus1])
             if shallowCoincidence[mutType1][int(gene1)] < params['min_coincidence_rate']:
                 print(mut + ' filtered with shallow coincidence = ' + str(shallowCoincidence[mutType1][int(gene1)]))
             else:
@@ -476,6 +478,7 @@ for locus1 in LofActLoci_dict.keys():
                 summaryMatrix.loc[int(gene1), 'Final_mutation_type'] = mutType1
                 summaryMatrix.loc[int(gene1), 'Final_freq'] = summaryMatrix.loc[int(gene1), mutType1+'_freq']
                 summaryMatrix.loc[int(gene1), 'Delta_over_PAM'] = summaryMatrix.loc[int(gene1), mutType1+'_freq'] - summaryMatrix.loc[int(gene1), 'PAM_freq']
+                summaryMatrix.loc[int(gene1), 'Genes_in_locus'] = len(LofActLoci_dict[locus1])
 
 
 keepLofAct = list(set(keepLofAct1))
@@ -541,7 +544,7 @@ keepLoc_df = keepLoc_df.applymap(int)
 ####################################
 ## Compile OncoMerge output files ##
 ####################################
-finalMutFile = pd.concat([pd.DataFrame(keepers).transpose().loc[newKeepPAM].sort_index(), pd.DataFrame(keepers).transpose().loc[keepLofAct].sort_index(), keepLoc_df.sort_index()], sort=True)
+finalMutFile = pd.concat([pd.DataFrame(keepers).transpose().loc[newKeepPAM].sort_index(), pd.DataFrame(keepers).transpose().loc[keepLofAct].sort_index(), keepLoc_df.sort_index()])
 
 # Rename all loci with only one gene
 ind_list = finalMutFile.index.tolist()
