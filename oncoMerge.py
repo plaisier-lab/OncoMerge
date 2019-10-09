@@ -22,6 +22,7 @@
 #####################
 ## Import packages ##
 #####################
+
 import json
 import argparse
 import pandas as pd
@@ -30,11 +31,13 @@ from statsmodels.stats.multitest import multipletests
 import itertools
 import sys
 import os
+from scipy.stats import hypergeom
 
 
 ##################################
 ## Read in command line options ##
 ##################################
+
 parser = argparse.ArgumentParser(description='OncoMerge merges patient Protein Affecting Mutations (PAMs) and Copy Number Alterations (CNAs) into a unified mutation matrix.')
 parser.add_argument('-cf', '--config_path', help='Path to JSON encoded configuration file, overrides command line parameters', type = str)
 parser.add_argument('-gp', '--gistic_path', help='Path to GISTIC output folder', type = str)
@@ -59,6 +62,7 @@ args = parser.parse_args()
 #######################
 ## Define parameters ##
 #######################
+
 params = args.__dict__
 if args.config_path:
     with open(args.config_path, "r") as cfg:
@@ -68,6 +72,18 @@ if args.config_path:
 if (not params['gistic_path']) or (not params['som_mut_path']) or (not params['mutsig2cv_path']) or (params['save_permutation'] and not params['load_permutation']==None):
     parser.print_help()
     sys.exit(1)
+
+
+###############
+## Functions ##
+###############
+
+def enrichment(overlap1, bakcground1, set1, set2):
+    x = len(overlap1)
+    M = len(background1)
+    n = len(set1)
+    N = len(set2)
+    return 1-hypergeom.cdf(x, M, n, N)
 
 
 ##################
@@ -84,6 +100,7 @@ if not params['conversion_file_path']:
     n1 = n1[params['label_name']]
 else:
     n1 = pd.read_csv(params['conversion_file_path'],index_col=0)[params['label_name']].apply(int)
+
 
 # load up significantly mutated genes
 mutSig2CV = pd.read_csv(params['mutsig2cv_path'],index_col=1)
@@ -102,15 +119,37 @@ for col1 in amp1.columns:
         ampLoci_qv[col1] = float(amp1[col1]['residual q value'])
 
 # Get list of significantly CNA deleted genes
-#delGenes = []
 delLoci = {}
 delLoci_qv = {}
 del1 = pd.read_csv(params['gistic_path']+'/'+params['del_path'],index_col=0,sep='\t')
 for col1 in del1.columns:
     if float(del1[col1]['residual q value'])<=0.05 and not (col1[0]=='X' or col1=='Y'):
-        #delGenes += [n1.loc[j] for j in [i.lstrip('[').rstrip(']').split('|')[0] for i in list(del1[col1].dropna()[3:])] if j in n1.index]
         delLoci[col1] = list(set([n1.loc[i] for i in [i.lstrip('[').rstrip(']').split('|')[0] for i in list(del1[col1].dropna()[3:])] if i in n1.index and n1.loc[i]>0]))
         delLoci_qv[col1] = float(del1[col1]['residual q value'])
+
+# Set up background gene numbers for gold-standard enrichment analysis
+backgrounds = {'Activating':[], 'LossOfFunction':[], 'Aggregate':[]}
+actTmp = [gene for locus in ampLoci for gene in ampLoci[locus]]
+backgrounds['Activating'] += actTmp
+backgrounds['Aggregate'] += actTmp
+delTmp = [gene for locus in delLoci for gene in delLoci[locus]]
+backgrounds['LossOfFunction'] += delTmp
+backgrounds['Aggregate'] += delTmp
+backgrounds['Aggregate'] += sigPAMs
+
+# Load up enrichment sets
+"""enrichmentSets = {}
+if 'enrichment_sets' in params:
+    for set1 in params['enrichment_sets']:
+        enSet1 = pd.read_csv(params['enrichment_sets'][set1], header=0)
+        enrichmentSets[set1] = {}
+        enrichmentSets[set1]['Aggregate'] = {'Activating': [], 'LossOfFunction': []}
+        for cancer in set(enSet1['Cancer']):
+            enrichmentSets[set1][cancer] = {}
+            for type1 in ['Activating', 'LossOfFunction']:
+                enrichmentSets[set1][cancer][type1] = list(enSet1.loc[(enSet1['Cancer']==cancer) & (enSet1['Type']==type1),'Entrez'])
+                enrichmentSets[set1]['Aggregate'][type1] += list(enSet1.loc[(enSet1['Cancer']==cancer) & (enSet1['Type']==type1),'Entrez'])
+"""
 
 # Load up somatically mutated genes
 somMuts = pd.read_csv(params['som_mut_path'],index_col=0,header=0)
@@ -158,18 +197,22 @@ summaryMatrix.loc[toMatch,'Symbol'] = [n1.index[n1==i][0] for i in toMatch]
 toMatch = [i for i in summaryMatrix.index if i in mutSig2CV.index]
 summaryMatrix.loc[toMatch,'MutSig2CV_qvalue'] = mutSig2CV.loc[toMatch,'q']
 
-# Add CNA locus and GISTIC q-value
+# Add CNA amp locus and GISTIC q-value
 for locus1 in ampLoci:
     for gene1 in ampLoci[locus1]:
         summaryMatrix.loc[gene1,'CNA_type'] = 'Amp'
         summaryMatrix.loc[gene1,'CNA_locus'] = locus1
         summaryMatrix.loc[gene1,'GISTIC_residual_q_value'] = ampLoci_qv[locus1]
 
+# Add CNA del locus and GISTIC q-value
 for locus1 in delLoci:
     for gene1 in delLoci[locus1]:
         summaryMatrix.loc[gene1,'CNA_type'] = 'Del'
         summaryMatrix.loc[gene1,'CNA_locus'] = locus1
         summaryMatrix.loc[gene1,'GISTIC_residual_q_value'] = delLoci_qv[locus1]
+
+# Load enrichment 
+
 
 # Print out some useful information
 print('\tSize of CNA matrix: '+str(d1.shape))
@@ -495,7 +538,7 @@ for pam1 in keepPAM:
         newKeepPAM.append(pam1)
         summaryMatrix.loc[int(tmp1), 'Final_mutation_type'] = 'PAM'
         summaryMatrix.loc[int(tmp1), 'Final_freq'] = summaryMatrix.loc[int(tmp1), 'PAM_freq']
-        summaryMatrix.loc[int(gene1), 'Delta_over_PAM'] = float(0)
+        summaryMatrix.loc[int(tmp1), 'Delta_over_PAM'] = float(0)
 
 ## Screen out loci that have a representative gene
 # Mutations that are at or above minimum mutation frequency cutoff
@@ -555,12 +598,14 @@ for locus1 in keepLoc_df.index:
         ind_list[idx] = str(ampLoci[splitUp[0]][0]) + '_CNAamp'
         summaryMatrix.loc[int(ampLoci[splitUp[0]][0]), 'Final_mutation_type'] = 'CNAamp'
         summaryMatrix.loc[int(ampLoci[splitUp[0]][0]), 'Final_freq'] = summaryMatrix.loc[int(ampLoci[splitUp[0]][0]), 'CNA_freq']
+        summaryMatrix.loc[int(ampLoci[splitUp[0]][0]), 'Delta_over_PAM'] = summaryMatrix.loc[int(ampLoci[splitUp[0]][0]), 'CNA_freq']
 
     if splitUp[-1]=='CNAdel' and len(delLoci[splitUp[0]])==1:
         idx = ind_list.index(locus1)
         ind_list[idx] = str(delLoci[splitUp[0]][0]) + '_CNAdel'
         summaryMatrix.loc[int(delLoci[splitUp[0]][0]), 'Final_mutation_type'] = 'CNAdel'
         summaryMatrix.loc[int(delLoci[splitUp[0]][0]), 'Final_freq'] = summaryMatrix.loc[int(delLoci[splitUp[0]][0]), 'CNA_freq']
+        summaryMatrix.loc[int(delLoci[splitUp[0]][0]), 'Delta_over_PAM'] = summaryMatrix.loc[int(delLoci[splitUp[0]][0]), 'CNA_freq']
 
 finalMutFile.index = ind_list
 
@@ -570,7 +615,7 @@ finalMutFile.to_csv(params['output_path']+'/oncoMerge_mergedMuts.csv')
 # Write out summary matrix to csv file
 summaryMatrix.to_csv(params['output_path']+'/oncoMerge_summaryMatrix.csv')
 
-## Write out loci
+## Write out loci information
 # Prepare for writing out
 writeLoci = ['Locus_name,Genes']
 for locus1 in keepLoc_df.index:
@@ -580,9 +625,18 @@ for locus1 in keepLoc_df.index:
     if splitUp[-1]=='CNAdel':
         writeLoci.append(locus1+','+' '.join([str(i) for i in delLoci[splitUp[0]]]))
 
-# Write out file
+# Write out loci file
 with open(params['output_path']+'/oncoMerge_CNA_loci.csv','w') as outFile:
     outFile.write('\n'.join(writeLoci))
+
+## Write out information for hypergeometric analysis
+# Can be used to load in gene information from final mutation file:
+#    [[int(j.split('_')[0]),j.split('_')[1]] for j in finalMutFile.index[[not i for i in list(finalMutFile.index.str.contains('p|q'))]]]
+
+# Write out background information for hypergeometric analysis
+backgrounds = {i:[int(j) for j in backgrounds[i]] for i in backgrounds}
+with open(params['output_path']+'/background.json', 'w') as outFile:
+    json.dump(backgrounds, outFile)
 
 print('Done.')
 
