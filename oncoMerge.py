@@ -366,7 +366,7 @@ for s1 in pamLofAct:
         summaryMatrix.loc[int(s1), 'LoF_freq'] = freq[s1]['LoF']
         if freqLoF>=0.05 or freqAct>=0.05 or freqPAM>=0.05:
             name1 = 'Unkown'
-            if int(s1) in n1:
+            if sum(n1.isin([int(s1)]))==1:
                 name1 = n1.index[n1==int(s1)][0]
             print('\t'+''.join([str(i) for i in [name1+' ('+str(s1),') - FreqPAM: ', round(freqPAM,3), ' | FreqNeg: ', round(freqNeg,3), ' | FreqLoF: ', round(freqLoF,3), ' | FreqPos: ', round(freqPos,3),' | FreqAct: ', round(freqAct,3)]]))
         if freqPAM>0 and freqPAM>=params['min_mut_freq'] and int(s1) in somMutPoint and int(s1) in sigPAMs:
