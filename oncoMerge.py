@@ -51,6 +51,7 @@ parser.add_argument('-ln', '--label_name', help='Label for Entrez ID column in G
 parser.add_argument('-tf', '--thresh_file', help='Path to the GISTIC all_thresholded file (default = all_thresholded.by_genes.txt)', type = str, default = 'all_thresholded.by_genes.txt')
 parser.add_argument('-pam', '--pam_file', help='Path to the protein affecting mutation (PAM) file (CSV matrix where columns are patients and genes are rows) [0 = not mutated, and 1 = mutated]', type = str)
 parser.add_argument('-mscv', '--mutsig2cv_file', help='Path to a MutSig2CV output file', type = str)
+parser.add_argument('-fus', '--fusions_file', help='Path to the gene fusions file (CSV matrix where columns are patients and genes are rows) [0 = not fused, and 1 = fused]', type = str, default='none')
 parser.add_argument('-op', '--output_path', help='Path you would like to output OncoMerged files (default = current directory)', type = str, default = '.')
 parser.add_argument('-mmf', '--min_mut_freq', help='Minimum frequency of mutation (range = 0-1; default = 0.05)', type = float, default = 0.05)
 parser.add_argument('-pq', '--perm_qv', help='Permuted p-value FDR BH corrected cutoff (default = 0.1)', type = float, default = 0.1)
@@ -58,6 +59,8 @@ parser.add_argument('-sp', '--save_permutation', help='Run and save out permutat
 parser.add_argument('-lp', '--load_permutation', help='Do not run permutation anlaysis and load permutation anlaysis from previous run (default off)', type = str, default = None)
 parser.add_argument('-mlg', '--min_loci_genes', help='Minimum number of genes in loci to apply maximum final frequency filter (default = 10)', type = int, default = 10)
 parser.add_argument('-mpf', '--min_pam_freq', help='Minimum PAM frequency (default = 0.01)', type = float, default = 0.01)
+parser.add_argument('-tcga', '--tcga', help='Clip gistic TCGA names.', type = bool, default = False)
+parser.add_argument('-bl', '--blacklist', help='List of patients (one per line) to exclude for frequency calculations.', type = str, default='none')
 args = parser.parse_args()
 
 
@@ -128,17 +131,31 @@ backgrounds['Aggregate'] += sigPAMs
 
 # Load up somatically mutated genes
 somMuts = pd.read_csv(params['pam_file'],index_col=0,header=0)
+somMuts[somMuts != 0] = 1
 if not somMuts.index.dtype=='int64':
     somMuts = somMuts.loc[somMuts.index.map(lambda x: x in n1.index)]
     somMuts.index = somMuts.index.map(lambda x: n1.loc[x])
+
 somMuts = somMuts.loc[~somMuts.index.duplicated(keep='first')]
 
-# Read in gistic all_data_by_genes file
+# Load up gene fusions
+if not params['fusions_file']=='none':
+    fusions = pd.read_csv(params['fusions_file'],index_col=0,header=0)
+    fusions[fusions != 0] = 1
+    if not fusions.index.dtype=='int64':
+        fusions = fusions.loc[somMuts.index.map(lambda x: x in n1.index)]
+        fusions.index = fusions.index.map(lambda x: n1.loc[x])
+    fusions = fusions.loc[~fusions.index.duplicated(keep='first')]
+
+# Read in gistic2 all_data_by_genes file
 with open(params['gistic_path']+'/'+params['thresh_file'],'r') as inFile:
     tmp = inFile.readline().strip().split('\t')
     numCols1 = len(tmp)
+
 d1 = pd.read_csv(params['gistic_path']+'/'+params['thresh_file'],index_col=0,sep='\t').drop(tmp[1], axis = 1)
-d1.columns = [i[:12] for i in d1.columns]
+if params['tcga']:
+    d1.columns = [i[:12] for i in d1.columns]
+
 d1 = d1.loc[d1.index.map(lambda x: x.split('|')[0] in n1.index)]
 d1.index = d1.index.map(lambda x: n1.loc[x.split('|')[0]])
 d1.index.name = 'Locus ID'
@@ -155,14 +172,24 @@ for i in lociThresh:
 d1 = d1.loc[lociThresh[include].index].drop('Cytoband', axis = 1)
 
 # Make sure somMuts and gistic have same samples
-somMuts = somMuts[list(set(d1.columns).intersection(somMuts.columns))]
-d1 = d1[list(set(d1.columns).intersection(somMuts.columns))]
+if params['fusions_file']=='none':
+    pats = list(set(d1.columns).intersection(somMuts.columns))
+else:
+    pats = list((set(d1.columns).intersection(somMuts.columns)).intersection(fusions.columns))
+    fusions = fusions[pats]
+
+somMuts = somMuts[pats]
+d1 = d1[pats]
 
 # Get rid of duplicated rows
 d1 = d1[~d1.index.duplicated(keep='first')]
 
 ## Fill out summary matrix
-summaryMatrix = pd.DataFrame(index= list(set([gene for locus in ampLoci.values() for gene in locus] + [gene for locus in delLoci.values() for gene in locus] + list(somMuts.index))), columns = ['Symbol', 'PAM_freq', 'MutSig2CV_qvalue', 'CNA_freq', 'CNA_locus', 'CNA_type', 'GISTIC_residual_q_value', 'Act_freq', 'LoF_freq', 'OM_type_selected', 'OM_empirical_p_value', 'OM_empirical_q_value', 'Genes_in_locus',  'Final_mutation_type', 'Final_freq', 'Delta_over_PAM'])
+cols = ['Symbol', 'PAM_freq', 'MutSig2CV_qvalue']
+if not params['fusions_file'] == 'none':
+    cols += ['Fusion_freq']
+cols += ['CNA_freq', 'CNA_locus', 'CNA_type', 'GISTIC_residual_q_value', 'Act_freq', 'LoF_freq', 'OM_type_selected', 'OM_empirical_p_value', 'OM_empirical_q_value', 'Genes_in_locus',  'Final_mutation_type', 'Final_freq', 'Delta_over_PAM']
+summaryMatrix = pd.DataFrame(index= list(set([gene for locus in ampLoci.values() for gene in locus] + [gene for locus in delLoci.values() for gene in locus] + list(somMuts.index))), columns = cols)
 
 # Add gene symbols
 toMatch = [i for i in summaryMatrix.index if i in n1.values]
@@ -172,9 +199,21 @@ summaryMatrix.loc[toMatch,'Symbol'] = [n1.index[n1==i][0] for i in toMatch]
 toMatch = [i for i in summaryMatrix.index if i in mutSig2CV.index]
 summaryMatrix.loc[toMatch,'MutSig2CV_qvalue'] = mutSig2CV.loc[toMatch,'q']
 
-# Print out some useful information
-print('\tSize of CNA matrix: '+str(d1.shape))
+# Load up black list of patients if given one
+blacklist = []
+if not params['blacklist']=='none':
+    with open(params['blacklist'], 'r') as inFile:
+        while 1:
+            line = inFile.readline()
+            if not line:
+                break
+            blacklist.append(line.strip().split(',')[0])
+
+#Print out some useful information
 print('\tSize of somatic mutation matrix: '+str(somMuts.shape))
+if not params['fusions_file']=='none':
+    print('\tSize of fusions matrix: '+str(fusions.shape))
+print('\tSize of CNA matrix: '+str(d1.shape))
 print('Finished loading data.')
 
 # Make the output directory if it doesn't exists already
@@ -187,20 +226,27 @@ if not os.path.exists(params['output_path']):
 ########################
 
 # Cutoff somatic mutations based on the minimum mutation frequency (mf)
-freq1 = somMuts.sum(axis=1)/len(list(somMuts.columns))
+freq1 = somMuts[somMuts.columns.difference(blacklist)].sum(axis=1)/len(list(somMuts.columns.difference(blacklist)))
 somMutPoint = freq1[freq1>=params['min_mut_freq']].index
 tmp1 = [i for i in summaryMatrix.index if i in freq1.index]
 summaryMatrix.loc[tmp1, 'PAM_freq'] = freq1.loc[tmp1]
+
+# Cutoff fusions based on the minimum mutation frequency (mf)
+if params['fusions_file']:
+    freq2 = fusions[fusions.columns.difference(blacklist)].sum(axis=1)/len(list(fusions.columns.difference(blacklist)))
+    fusionsMut = freq2[freq2>=params['min_mut_freq']].index
+    tmp1 = [i for i in summaryMatrix.index if i in freq2.index]
+    summaryMatrix.loc[tmp1, 'Fusion_freq'] = freq2.loc[tmp1]
 
 # Precompute positive and negative dichotomized matrices
 print('Precomputing dichotomized matrices...')
 posdicot = (lambda x: 1 if x>=2 else 0)
 posD1 = d1.applymap(posdicot)
-posFreq = posD1.mean(axis=1)
+posFreq = posD1[posD1.columns.difference(blacklist)].mean(axis=1)
 ampGenes = {j:i for i in ampLoci for j in ampLoci[i]}
 negdicot = (lambda x: 1 if x<=(-2) else 0)
 negD1 = d1.applymap(negdicot)
-negFreq = negD1.mean(axis=1)
+negFreq = negD1[negD1.columns.difference(blacklist)].mean(axis=1)
 delGenes = {j:i for i in delLoci for j in delLoci[i]}
 print('Finished precomputing dichotomized matrices.')
 
@@ -249,7 +295,7 @@ lociCNA = pd.DataFrame(columns=d1.columns)
 print('Bundling amplification loci...')
 for loci1 in ampLoci:
     # Get matrix of CNAs for genes in loci
-    dt = posD1.loc[ampLoci[loci1]]
+    dt = posD1.loc[set(posD1.index).intersection(ampLoci[loci1])]
     # Get unique rows
     dedup = dt.drop_duplicates(keep='first')
     # Get genes which match and add to output dictionaries
@@ -261,7 +307,7 @@ for loci1 in ampLoci:
 print('Bundling deletion loci...')
 for loci1 in delLoci:
     # Get matrix of CNAs for genes in loci
-    dt = negD1.loc[delLoci[loci1]]
+    dt = negD1.loc[set(posD1.index).intersection(delLoci[loci1])]
     # Get unique rows
     dedup = dt.drop_duplicates(keep='first')
     # Get genes which match and add to output dictionaries
@@ -271,31 +317,52 @@ for loci1 in delLoci:
         lociCNAgenes[cnaName] = [j for j in dt.index if dedup.iloc[i].equals(dt.loc[j])]
 
 # Make combined matrix
-# LoF = deletions + somatic point mutations
-# Act = amplifications + somatic point mutations
+# LoF = deletions + somatic point mutations (+ fusions if have data)
+# Act = amplifications + somatic point mutations (+ fusions if have data)
 print('Starting somatic mutations...')
 pamLofAct = {}
 freq = {}
-for s1 in somMutPoint:
+potMuts = somMutPoint
+if not params['fusions_file'] == 'none':
+    potMuts = potMuts.append(fusionsMut)
+for s1 in potMuts:
     if s1>0:
         if not str(s1) in pamLofAct:
             pamLofAct[str(s1)] = {}
-        tmpSom = somMuts.loc[s1]
-        # If potential PAM, store PAM
-        if not (str(s1)+'_PAM' in pamLofAct[str(s1)] or sum(tmpSom)==0):
-            pamLofAct[str(s1)][str(s1)+'_PAM'] = tmpSom
+        if s1 in somMuts.index:
+            tmpSom = somMuts.loc[s1]
+            tmpSomMean = tmpSom[tmpSom.index.difference(blacklist)].mean()
+            # If potential PAM, store PAM
+            if not (str(s1)+'_PAM' in pamLofAct[str(s1)] or sum(tmpSom)==0):
+                pamLofAct[str(s1)][str(s1)+'_PAM'] = tmpSom
+        if (not params['fusions_file'] == 'none') and (s1 in fusions.index):
+            tmpFusion = fusions.loc[s1]
+            if not (str(s1)+'_Fusion' in pamLofAct[str(s1)] or sum(tmpFusion)==0):
+                pamLofAct[str(s1)][str(s1)+'_Fusion'] = tmpFusion
+            if s1 in somMuts.index:
+                tmpSom = tmpSom.add(tmpFusion)
+                tmpSom[tmpSom > 1] = 1
+            else:
+                tmpSom = tmpFusion
+                tmpSom[tmpSom > 1] = 1
         if (s1 in negD1.index and s1 in posD1.index):
             tmpNeg = negD1.loc[s1]
             tmpLoF = tmpSom.add(tmpNeg)[tmpNeg.index]
-            tmpLoF[tmpLoF==2] = 1
+            tmpLoF[tmpLoF > 1] = 1
             tmpPos = posD1.loc[s1]
             tmpAct = tmpSom.add(tmpPos)[tmpPos.index]
-            tmpAct[tmpAct==2] = 1
+            tmpAct[tmpAct > 1] = 1
             if not s1 in freq:
-                freq[str(s1)] = {'PAM':tmpSom.mean(),'CNAdel':tmpNeg.mean(),'CNAamp':tmpPos.mean(),'LoF':tmpLoF.mean(),'Act':tmpAct.mean()}
+                if (not params['fusions_file'] == 'none') and (s1 in fusions.index):
+                    freq[str(s1)] = {'PAM':tmpSomMean,'Fusion':tmpFusion[tmpFusion.index.difference(blacklist)].mean(),'CNAdel':tmpNeg[tmpNeg.index.difference(blacklist)].mean(),'CNAamp':tmpPos[tmpPos.index.difference(blacklist)].mean(),'LoF':tmpLoF[tmpLoF.index.difference(blacklist)].mean(),'Act':tmpAct[tmpAct.index.difference(blacklist)].mean()}
+                else:
+                    freq[str(s1)] = {'PAM':tmpSomMean,'CNAdel':tmpNeg[tmpNeg.index.difference(blacklist)].mean(),'CNAamp':tmpPos[tmpPos.index.difference(blacklist)].mean(),'LoF':tmpLoF[tmpLoF.index.difference(blacklist)].mean(),'Act':tmpAct[tmpAct.index.difference(blacklist)].mean()}
         else:
             if not s1 in freq:
-                freq[str(s1)] = {'PAM':tmpSom.mean(),'CNAdel':0,'CNAamp':0,'LoF':0,'Act':0}
+                if (params['fusions_file'] == 'none') and (s1 in fusions.index):
+                    freq[str(s1)] = {'PAM':tmpSomMean,'CNAdel':0,'CNAamp':0,'LoF':0,'Act':0}
+                else:
+                    freq[str(s1)] = {'PAM':tmpSomMean,'Fusion':0,'CNAdel':0,'CNAamp':0,'LoF':0,'Act':0}
 
 print('Starting amplifications...')
 for loci1 in ampLoci:
@@ -304,14 +371,22 @@ for loci1 in ampLoci:
             # If potential Act
             if s1 in somMuts.index and s1 in posD1.index:
                 tmpSom = somMuts.loc[s1]
+                tmpSomMean = tmpSom[tmpSom.index.difference(blacklist)].mean()
+                if not params['fusions_file'] == 'none' and (s1 in fusions.index):
+                    tmpFusion = fusions.loc[s1]
+                    tmpSom = tmpSom.add(tmpFusion)
+                    tmpSom[tmpSom > 1] = 1
                 tmpNeg = negD1.loc[s1]
                 tmpLoF = tmpSom.add(tmpNeg)[tmpNeg.index]
-                tmpLoF[tmpLoF==2] = 1
+                tmpLoF[tmpLoF > 1] = 1
                 tmpPos = posD1.loc[s1]
                 tmpAct = tmpSom.add(tmpPos)[tmpPos.index]
-                tmpAct[tmpAct==2] = 1
+                tmpAct[tmpAct > 1] = 1
                 if not s1 in freq:
-                    freq[str(s1)] = {'PAM':tmpSom.mean(),'CNAdel':tmpNeg.mean(),'CNAamp':tmpPos.mean(),'LoF':tmpLoF.mean(),'Act':tmpAct.mean()}
+                    if params['fusions_file'] == 'none':
+                        freq[str(s1)] = {'PAM':tmpSomMean,'Fusion':tmpFusion[tmpFusion.index.difference(blacklist)].mean(),'CNAdel':tmpNeg[tmpNeg.index.difference(blacklist)].mean(),'CNAamp':tmpPos[tmpPos.index.difference(blacklist)].mean(),'LoF':tmpLoF[tmpLoF.index.difference(blacklist)].mean(),'Act':tmpAct[tmpAct.index.difference(blacklist)].mean()}
+                    else:
+                       freq[str(s1)] = {'PAM':tmpSomMean,'CNAdel':tmpNeg[tmpNeg.index.difference(blacklist)].mean(),'CNAamp':tmpPos[tmpPos.index.difference(blacklist)].mean(),'LoF':tmpLoF[tmpLoF.index.difference(blacklist)].mean(),'Act':tmpAct[tmpAct.index.difference(blacklist)].mean()}
                 # Store Act
                 if not str(s1) in pamLofAct:
                     pamLofAct[str(s1)] = {}
@@ -323,7 +398,10 @@ for loci1 in ampLoci:
             tmpNeg = negD1.loc[s1]
             tmpPos = posD1.loc[s1]
             if not s1 in freq:
-                freq[str(s1)] = {'PAM':np.nan,'CNAdel':tmpNeg.mean(),'CNAamp':tmpPos.mean(),'LoF':np.nan,'Act':np.nan}
+                if (params['fusions_file'] == 'none') and (s1 in fusions.index):
+                    freq[str(s1)] = {'PAM':np.nan,'CNAdel':tmpNeg[tmpNeg.index.difference(blacklist)].mean(),'CNAamp':tmpPos[tmpPos.index.difference(blacklist)].mean(),'LoF':np.nan,'Act':np.nan}
+                else:
+                    freq[str(s1)] = {'PAM':np.nan,'Fusion':np.nan,'CNAdel':tmpNeg[tmpNeg.index.difference(blacklist)].mean(),'CNAamp':tmpPos[tmpPos.index.difference(blacklist)].mean(),'LoF':np.nan,'Act':np.nan}
             # Store Amp
             if not str(s1) in pamLofAct:
                 pamLofAct[str(s1)] = {}
@@ -337,14 +415,22 @@ for loci1 in delLoci:
             # If potential Lof
             if s1 in somMuts.index and s1 in negD1.index:
                 tmpSom = somMuts.loc[s1]
+                tmpSomMean = tmpSom[tmpSom.index.difference(blacklist)].mean()
+                if not params['fusions_file'] == 'none' and (s1 in fusions.index):
+                    tmpFusion = fusions.loc[s1]
+                    tmpSom = tmpSom.add(tmpFusion)
+                    tmpSom[tmpSom > 1] = 1
                 tmpNeg = negD1.loc[s1]
                 tmpLoF = tmpSom.add(tmpNeg)[tmpNeg.index]
-                tmpLoF[tmpLoF==2] = 1
+                tmpLoF[tmpLoF > 1] = 1
                 tmpPos = posD1.loc[s1]
                 tmpAct = tmpSom.add(tmpPos)[tmpPos.index]
-                tmpAct[tmpAct==2] = 1
+                tmpAct[tmpAct > 1] = 1
                 if not s1 in freq:
-                    freq[str(s1)] = {'PAM':tmpSom.mean(),'CNAdel':tmpNeg.mean(),'CNAamp':tmpPos.mean(),'LoF':tmpLoF.mean(),'Act':tmpAct.mean()}
+                    if params['fusions_file'] == 'none':
+                        freq[str(s1)] = {'PAM':tmpSomMean,'Fusion':tmpFusion[tmpFusion.index.difference(blacklist)].mean(),'CNAdel':tmpNeg[tmpNeg.index.difference(blacklist)].mean(),'CNAamp':tmpPos[tmpPos.index.difference(blacklist)].mean(),'LoF':tmpLoF[tmpLoF.index.difference(blacklist)].mean(),'Act':tmpAct[tmpAct.index.difference(blacklist)].mean()}
+                    else:
+                       freq[str(s1)] = {'PAM':tmpSomMean,'CNAdel':tmpNeg[tmpNeg.index.difference(blacklist)].mean(),'CNAamp':tmpPos[tmpPos.index.difference(blacklist)].mean(),'LoF':tmpLoF[tmpLoF.index.difference(blacklist)].mean(),'Act':tmpAct[tmpAct.index.difference(blacklist)].mean()}
                 # Store LoF
                 if not str(s1) in pamLofAct:
                     pamLofAct[str(s1)] = {}
@@ -356,7 +442,10 @@ for loci1 in delLoci:
             tmpNeg = negD1.loc[s1]
             tmpPos = posD1.loc[s1]
             if not s1 in freq:
-                freq[str(s1)] = {'PAM':np.nan,'CNAdel':tmpNeg.mean(),'CNAamp':tmpPos.mean(),'LoF':np.nan,'Act':np.nan}
+                if (params['fusions_file'] == 'none') and (s1 in fusions.index):
+                    freq[str(s1)] = {'PAM':np.nan,'CNAdel':tmpNeg[tmpNeg.index.difference(blacklist)].mean(),'CNAamp':tmpPos[tmpPos.index.difference(blacklist)].mean(),'LoF':np.nan,'Act':np.nan}
+                else:
+                    freq[str(s1)] = {'PAM':np.nan,'Fusion':np.nan,'CNAdel':tmpNeg[tmpNeg.index.difference(blacklist)].mean(),'CNAamp':tmpPos[tmpPos.index.difference(blacklist)].mean(),'LoF':np.nan,'Act':np.nan}
             # Store Del
             if not str(s1) in pamLofAct:
                 pamLofAct[str(s1)] = {}
@@ -366,6 +455,7 @@ for loci1 in delLoci:
 # Decide which mutations will be tested in permutation analysis
 print('Screening for frequency...')
 keepPAM = []
+keepFusion = []
 keepDel = []
 keepAmp = []
 keepers = {}
@@ -373,6 +463,8 @@ calcSig = []
 for s1 in pamLofAct:
     if s1 in freq:
         freqPAM = freq[s1]['PAM']
+        if 'Fusion' in freq[s1]:
+            freqFusion = freq[s1]['Fusion']
         freqPos = freq[s1]['CNAamp']
         freqNeg = freq[s1]['CNAdel']
         #if summaryMatrix.loc[int(s1),'CNA_type']=='Del':
@@ -383,16 +475,25 @@ for s1 in pamLofAct:
         summaryMatrix.loc[int(s1), 'Act_freq'] = freq[s1]['Act']
         freqLoF = freq[s1]['LoF']
         summaryMatrix.loc[int(s1), 'LoF_freq'] = freq[s1]['LoF']
-        if freqLoF>=0.05 or freqAct>=0.05 or freqPAM>=0.05 or freqPos>=0.05 or freqNeg>=0.05:
+        if freqLoF>=0.05 or freqAct>=0.05 or freqPAM>=0.05 or freqPos>=0.05 or freqNeg>=0.05 or ('Fusion' in freq[s1] and freqFusion>=0.05):
             name1 = 'Unkown'
             if sum(n1.isin([int(s1)]))==1:
                 name1 = n1.index[n1==int(s1)][0]
-            print('\t'+''.join([str(i) for i in [name1+' ('+str(s1),') - FreqPAM: ', round(freqPAM,3), ' | FreqNeg: ', round(freqNeg,3), ' | FreqLoF: ', round(freqLoF,3), ' | FreqPos: ', round(freqPos,3),' | FreqAct: ', round(freqAct,3)]]))
+            if 'Fusion' in freq[s1]:
+                print('\t'+''.join([str(i) for i in [name1+' ('+str(s1),') - FreqPAM: ', round(freqPAM,3), ' | FreqFusion: ', round(freqFusion,3), ' | FreqNeg: ', round(freqNeg,3), ' | FreqLoF: ', round(freqLoF,3), ' | FreqPos: ', round(freqPos,3),' | FreqAct: ', round(freqAct,3)]]))
+            else:
+                print('\t'+''.join([str(i) for i in [name1+' ('+str(s1),') - FreqPAM: ', round(freqPAM,3), ' | FreqNeg: ', round(freqNeg,3), ' | FreqLoF: ', round(freqLoF,3), ' | FreqPos: ', round(freqPos,3),' | FreqAct: ', round(freqAct,3)]]))
         # Add PAM
         if freqPAM>0 and freqPAM>=params['min_mut_freq'] and int(s1) in somMutPoint and int(s1) in sigPAMs:
             keepers[str(s1)+'_PAM'] = pamLofAct[str(s1)][str(s1)+'_PAM']
             keepPAM.append(str(s1)+'_PAM')
             summaryMatrix.loc[int(s1),'OM_type_selected'] = 'PAM'
+        # Add Fusion
+        if 'Fusion' in freq[s1]:
+            if freqFusion>0 and freqFusion>=params['min_mut_freq'] and int(s1) in fusionsMut:
+                keepers[str(s1)+'_Fusion'] = pamLofAct[str(s1)][str(s1)+'_Fusion']
+                keepFusion.append(str(s1)+'_Fusion')
+                summaryMatrix.loc[int(s1),'OM_type_selected'] = 'Fusion'
         # Add Act
         if str(s1)+'_Act' in pamLofAct[str(s1)] and freqAct>freqPAM and freqAct>=params['min_mut_freq']:
             if freqPAM>=params['min_pam_freq']:
@@ -425,11 +526,16 @@ print('Permutation anlaysis...')
 numPermutes = 1000
 
 # Permute to get frequency
-def singlePermute(somMutsMF, somCNAsMF):
+def singlePermute(somMutsMF, somFusionMF, somCNAsMF):
     tmp1 = pd.Series(np.random.permutation(somMutsMF), index=somMutsMF.index)
     tmp2 = pd.Series(np.random.permutation(somCNAsMF), index=somCNAsMF.index)
-    subset1 = set(somMutsMF.index).intersection(somCNAsMF.index)
-    return list(tmp1.loc[subset1]+tmp2.loc[subset1])
+    if type(somFusionMF)==pd.core.series.Series:
+        subset1 = set(somMutsMF.index).intersection(somCNAsMF.index)
+        return list(tmp1.loc[subset1]+tmp2.loc[subset1])
+    else:
+        tmp3 = pd.Series(np.random.permutation(somFusionMF), index=somFusionMF.index)
+        subset1 = (set(somMutsMF.index).intersection(somCNAsMF.index)).intersection(somFusionMF)
+        return list(tmp1.loc[subset1]+tmp2.loc[subset1]+tmp3.loc[subset1])
 
 permMF_neg = []
 permMF_pos = []
@@ -437,20 +543,26 @@ if params['load_permutation']==None:
     ## Compute permutations if not loading from previous run
     # Deletions
     print('\tPermuting deletions...')
-    somMutsMF = somMuts.transpose().mean()
-    somCNAsMF = negD1.transpose().mean()
+    somMutsMF = somMuts[somMuts.columns.difference(blacklist)].transpose().mean()
+    somFusionMF = 'none'
+    if not params['fusions_file'] == 'none':
+        somFusionMF = fusions[fusions.columns.difference(blacklist)].transpose().mean()
+    somCNAsMF = negD1[negD1.columns.difference(blacklist)].transpose().mean()
     with tqdm(total=numPermutes) as pbar:
         for i in range(numPermutes):
-            permMF_neg += singlePermute(somMutsMF, somCNAsMF)
+            permMF_neg += singlePermute(somMutsMF, somFusionMF, somCNAsMF)
             pbar.update(1)
 
     # Amplifications
     print('\tPermuting amplifications...')
-    somMutsMF = somMuts.transpose().mean()
-    somCNAsMF = posD1.transpose().mean()
+    somMutsMF = somMuts[somMuts.columns.difference(blacklist)].transpose().mean()
+    somFusionMF = 'none'
+    if not params['fusions_file'] == 'none':
+        somFusionMF = fusions[fusions.columns.difference(blacklist)].transpose().mean()
+    somCNAsMF = posD1[posD1.columns.difference(blacklist)].transpose().mean()
     with tqdm(total=numPermutes) as pbar:
         for i in range(numPermutes):
-            permMF_pos += singlePermute(somMutsMF, somCNAsMF)
+            permMF_pos += singlePermute(somMutsMF, somFusionMF, somCNAsMF)
             pbar.update(1)
 
     # Change precision so that is the same as what will be written out,
@@ -585,6 +697,19 @@ for pam1 in keepPAM:
         summaryMatrix.loc[int(tmp1), 'Final_mutation_type'] = 'PAM'
         summaryMatrix.loc[int(tmp1), 'Final_freq'] = summaryMatrix.loc[int(tmp1), 'PAM_freq']
         summaryMatrix.loc[int(tmp1), 'Delta_over_PAM'] = float(0)
+
+# Screen out PAMs that are LoF/Act
+for fus1 in keepFusion:
+    found = 0
+    tmp1 = fus1.split('_')[0]
+    for lofAct in keepLofAct:
+        if tmp1==lofAct.split('_')[0]:
+            found = 1
+    if found==0:
+        newKeepPAM.append(fus1)
+        summaryMatrix.loc[int(tmp1), 'Final_mutation_type'] = 'Fusion'
+        summaryMatrix.loc[int(tmp1), 'Final_freq'] = summaryMatrix.loc[int(tmp1), 'Fusion_freq']
+        summaryMatrix.loc[int(tmp1), 'Delta_over_PAM'] = summaryMatrix.loc[int(tmp1), 'Fusion_freq']-summaryMatrix.loc[int(tmp1), 'PAM_freq']
 
 ## Screen out loci that have a representative gene
 # Mutations that are at or above minimum mutation frequency cutoff
