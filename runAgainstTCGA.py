@@ -1,14 +1,33 @@
+##########################################################
+## OncoMerge:  runAgainstTCGA.py                        ##
+##  ______     ______     __  __                        ##
+## /\  __ \   /\  ___\   /\ \/\ \                       ##
+## \ \  __ \  \ \___  \  \ \ \_\ \                      ##
+##  \ \_\ \_\  \/\_____\  \ \_____\                     ##
+##   \/_/\/_/   \/_____/   \/_____/                     ##
+## @Developed by: Plaisier Lab                          ##
+##   (https://plaisierlab.engineering.asu.edu/)         ##
+##   Arizona State University                           ##
+##   242 ISTB1, 550 E Orange St                         ##
+##   Tempe, AZ  85281                                   ##
+## @github: https://github.com/plaisier-lab/OncoMerge   ##
+## @Author:  Chris Plaisier                             ##
+## @License:  GNU GPLv3                                 ##
+##                                                      ##
+## If this program is used in your analysis please      ##
+## mention who built it. Thanks. :-)                    ##
+##########################################################
+
+
 from subprocess import *
 import os
 
 # Run for each tumor type in TCGA
-#for tumor in ['PAAD']:
-#for tumor in ['ACC', 'BLCA', 'BRCA', 'CESC', 'CHOL', 'COAD', 'DLBC', 'ESCA', 'GBM', 'HNSC', 'KICH', 'KIRC', 'KIRP', 'LGG', 'LIHC', 'LUAD', 'LUSC', 'MESO', 'OV', 'PAAD', 'PCPG', 'PRAD', 'READ', 'SARC', 'SKCM', 'STAD', 'TGCT', 'THCA', 'THYM', 'UCEC', 'UCS', 'UVM']:
-for tumor in ['UCEC', 'UCS', 'UVM']:
+for tumor in ['ACC', 'BLCA', 'BRCA', 'CESC', 'CHOL', 'COAD', 'DLBC', 'ESCA', 'GBM', 'HNSC', 'KICH', 'KIRC', 'KIRP', 'LGG', 'LIHC', 'LUAD', 'LUSC', 'MESO', 'OV', 'PAAD', 'PCPG', 'PRAD', 'READ', 'SARC', 'SKCM', 'STAD', 'TGCT', 'THCA', 'THYM', 'UCEC', 'UCS', 'UVM']:
     print(tumor)
     # Make the output directory if it doesn't exists already
-    if not os.path.exists('TCGA/output/'+tumor):
-        os.mkdir('TCGA/output/'+tumor)
+    if not os.path.exists('TCGA/output_5_4_2022/'+tumor):
+        os.mkdir('TCGA/output_5_4_2022/'+tumor)
 
     # Run first run with no filters
     print('Running no_filter...')
@@ -18,11 +37,14 @@ for tumor in ['UCEC', 'UCS', 'UVM']:
             '-ln "Locus ID"',
             '-pam TCGA/PAM/'+tumor+'_somMutMC3.csv',
             '-mscv TCGA/MutSig2cv/'+tumor+'_sig2cv.csv',
-            '-op TCGA/output/'+tumor+'/no_filter',
+            '-fus TCGA/FUSIONS/'+tumor+'_fusions.csv',
+            '-op TCGA/output_5_4_2022/'+tumor+'/no_filter',
             '-pq 1',
             '-mlg 10000',
             '-mpf 0',
-            '-sp']
+            '-sp',
+            '-tcga True',
+            '-bl TCGA/blocklist/blocklist_29850653_29625053.csv']
     proc1 = Popen(' '.join(cmd1), shell=True, stdin=PIPE)
     out = proc1.communicate()
 
@@ -34,11 +56,14 @@ for tumor in ['UCEC', 'UCS', 'UVM']:
             '-ln "Locus ID"',
             '-pam TCGA/PAM/'+tumor+'_somMutMC3.csv',
             '-mscv TCGA/MutSig2cv/'+tumor+'_sig2cv.csv',
-            '-op TCGA/output/'+tumor+'/pq',
+            '-fus TCGA/FUSIONS/'+tumor+'_fusions.csv',
+            '-op TCGA/output_5_4_2022/'+tumor+'/pq',
             '-pq 0.1',
             '-mlg 10000',
             '-mpf 0',
-            '-lp TCGA/output/'+tumor+'/no_filter']
+            '-lp TCGA/output_5_4_2022/'+tumor+'/no_filter',
+            '-tcga True',
+            '-bl TCGA/blocklist/blocklist_29850653_29625053.csv']
     proc2 = Popen(' '.join(cmd2), shell=True, stdin=PIPE)
     out = proc2.communicate()
 
@@ -50,11 +75,14 @@ for tumor in ['UCEC', 'UCS', 'UVM']:
             '-ln "Locus ID"',
             '-pam TCGA/PAM/'+tumor+'_somMutMC3.csv',
             '-mscv TCGA/MutSig2cv/'+tumor+'_sig2cv.csv',
-            '-op TCGA/output/'+tumor+'/mff',
+            '-fus TCGA/FUSIONS/'+tumor+'_fusions.csv',
+            '-op TCGA/output_5_4_2022/'+tumor+'/mff',
             '-pq 1',
             '-mlg 10',
             '-mpf 0',
-            '-lp TCGA/output/'+tumor+'/no_filter']
+            '-lp TCGA/output_5_4_2022/'+tumor+'/no_filter',
+            '-tcga True',
+            '-bl TCGA/blocklist/blocklist_29850653_29625053.csv']
     proc3 = Popen(' '.join(cmd3), shell=True, stdin=PIPE)
     out = proc3.communicate()
 
@@ -66,45 +94,14 @@ for tumor in ['UCEC', 'UCS', 'UVM']:
             '-ln "Locus ID"',
             '-pam TCGA/PAM/'+tumor+'_somMutMC3.csv',
             '-mscv TCGA/MutSig2cv/'+tumor+'_sig2cv.csv',
-            '-op TCGA/output/'+tumor+'/pq_mff',
+            '-fus TCGA/FUSIONS/'+tumor+'_fusions.csv',
+            '-op TCGA/output_5_4_2022/'+tumor+'/pq_mff',
             '-pq 0.1',
             '-mlg 10',
             '-mpf 0',
-            '-lp TCGA/output/'+tumor+'/no_filter']
+            '-lp TCGA/output_5_4_2022/'+tumor+'/no_filter',
+            '-tcga True',
+            '-bl TCGA/blocklist/blocklist_29850653_29625053.csv']
     proc4 = Popen(' '.join(cmd4), shell=True, stdin=PIPE)
     out = proc4.communicate()
-    
-    '''
-    # Run with minimum PAM frequency filter
-    print('\nRunning mpf...')
-    cmd5 = ['python oncoMerge.py',
-            '-gp TCGA/GISTIC/'+tumor,
-            '-aaf TCGA/OncoMerge_input_g2e_converter.csv',
-            '-ln "Locus ID"',
-            '-pam TCGA/PAM/'+tumor+'_somMutMC3.csv',
-            '-mscv TCGA/MutSig2cv/'+tumor+'_sig2cv.csv',
-            '-op TCGA/output/'+tumor+'/mpf',
-            '-pq 1',
-            '-mlg 10000',
-            '-mpf 0.01',
-            '-lp TCGA/output/'+tumor+'/no_filter']
-    proc5 = Popen(' '.join(cmd5), shell=True, stdin=PIPE)
-    out = proc5.communicate()
-
-    # Run with both filters
-    print('\nRunning pq_mpf...')
-    cmd6 = ['python oncoMerge.py',
-            '-gp TCGA/GISTIC/'+tumor,
-            '-aaf TCGA/OncoMerge_input_g2e_converter.csv',
-            '-ln "Locus ID"',
-            '-pam TCGA/PAM/'+tumor+'_somMutMC3.csv',
-            '-mscv TCGA/MutSig2cv/'+tumor+'_sig2cv.csv',
-            '-op TCGA/output/'+tumor+'/pq_mpf',
-            '-pq 0.1',
-            '-mlg 10000',
-            '-mpf 0.01',
-            '-lp TCGA/output/'+tumor+'/no_filter']
-    proc6 = Popen(' '.join(cmd6), shell=True, stdin=PIPE)
-    out = proc6.communicate()
-    '''
 

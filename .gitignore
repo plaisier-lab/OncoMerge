@@ -122,3 +122,6 @@ pathways/workspace/PathwayCommons10.humancyc.hgnc.gmt
 *~
 *.swp
 *.swo
+aggregateTCGA_8_10_2021.py
+aggregateTCGA.py
+.DS_Store
