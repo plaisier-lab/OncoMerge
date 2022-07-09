@@ -1,63 +1,87 @@
 # OncoMerge
-Software to integrate somatic protein affecting mutations (PAMs) and copy number alterations (CNAs) for downstream computational analyses.
+Software to integrate somatic protein affecting mutations (PAMs) gene fusions, and copy number alterations (CNAs) for downstream computational analyses.
+
+# Input
+- PAM:
+  - Somatic mutation matrix
+  - MutSigCV2 result file
+- Fusion:
+  - PRADA output file
+- CNA:
+  - GISTIC2 output files:
+    - Amp file
+    - Del file
+    - all_data_by_genes file
 
 # Usage
-From the command line help. The Oncomerge program requires files from a GISTIC run, somatic mutation matrix, and MutSig2CV output file. The program has two different cutoff parameters:
- - Minimum mutation frequency - the minimum somatic mutation frequency that will be allowed into the output file
- - Permuted p-value cutoff - alpha value cutoff for the FDR BH corrected q-value from the permuted p-values
- 
- Finally, there are two parameters which can be used to label a run:
- - Tumor type
- - Run name
+From the command line -h or --help will provide the usage. Parameters can be given either as a config file formatted in JSON, or as named comand line parameters:
 ```
-usage: oncoMerge.py [-h] [-tt TUMOR_TYPE] [-rn RUN_NAME] [-mmf MIN_MUT_FREQ]
-                    [-dp DEL_PATH] [-ap AMP_PATH] [-gdp GENE_DATA_PATH]
-                    [-ln LABEL_NAME] [-tp THRESH_PATH] [-smp SOM_MUT_PATH]
-                    [-mscv MUTSIG2_CV] [-pp PERM_PV] [-op OUTPUT_PATH]
+usage: oncoMerge.py [-h] [-cf CONFIG_FILE] [-gp GISTIC_PATH] [-df DEL_FILE] [-af AMP_FILE] [-gdf GENE_DATA_FILE]
+                    [-aaf ALTERNATE_ANNOTATION_FILE] [-ln LABEL_NAME] [-tf THRESH_FILE] [-gt GISTIC_THRESHOLD] [-pam PAM_FILE]
+                    [-mscv MUTSIG2CV_FILE] [-fus FUSIONS_FILE] [-op OUTPUT_PATH] [-mmf MIN_MUT_FREQ] [-pq PERM_QV] [-sp]
+                    [-lp LOAD_PERMUTATION] [-mlg MIN_LOCI_GENES] [-mpf MIN_PAM_FREQ] [-tcga TCGA] [-bl BLOCKLIST]
 
-Used to choose a cancer type
+OncoMerge merges patient Protein Affecting Mutations (PAMs) and Copy Number Alterations (CNAs) into a unified mutation matrix.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -tt TUMOR_TYPE, --tumor_type TUMOR_TYPE
-                        descriptive three/four letter code (e.g. TCGA cancer
-                        codes)
-  -rn RUN_NAME, --run_name RUN_NAME
-                        Descriptive name the run
-  -mmf MIN_MUT_FREQ, --min_mut_freq MIN_MUT_FREQ
-                        Minimum frequency of mutation (range = 0-1; default =
-                        0.05)
-  -dp DEL_PATH, --del_path DEL_PATH
-                        Path to GISTIC deletion file (e.g.
-                        del_genes.conf_99.txt)
-  -ap AMP_PATH, --amp_path AMP_PATH
-                        Path to the GISTIC amplification file
-                        (amp_genes.conf_99.txt)
-  -gdp GENE_DATA_PATH, --gene_data_path GENE_DATA_PATH
-                        Path to the GISTIC gene data file
-                        (all_data_by_genes.txt)
+  -cf CONFIG_FILE, --config_file CONFIG_FILE
+                        Path to JSON encoded configuration file, overrides command line parameters
+  -gp GISTIC_PATH, --gistic_path GISTIC_PATH
+                        Path to GISTIC output folder
+  -df DEL_FILE, --del_file DEL_FILE
+                        Path to GISTIC deletion file (default = del_genes.conf_99.txt)
+  -af AMP_FILE, --amp_file AMP_FILE
+                        Path to the GISTIC amplification file (default = amp_genes.conf_99.txt)
+  -gdf GENE_DATA_FILE, --gene_data_file GENE_DATA_FILE
+                        Path to the GISTIC gene data file (default = all_data_by_genes.txt)
+  -aaf ALTERNATE_ANNOTATION_FILE, --alternate_annotation_file ALTERNATE_ANNOTATION_FILE
+                        Supply alternate annotation file to convert gene symbols to Entrez IDs (default does not import
+                        alternate annotation file and instead uses conversion embedded in GISTIC output files).
   -ln LABEL_NAME, --label_name LABEL_NAME
-                        Label for Entrez ID column in GISTIC gene data file
-                        (default = 'Gene ID')
-  -tp THRESH_PATH, --thresh_path THRESH_PATH
-                        Path to the GISTIC all_thresholded file
-                        (all_thresholded.by_genes.txt)
-  -smp SOM_MUT_PATH, --som_mut_path SOM_MUT_PATH
-                        Path to the somatic mutations file (CSV matrix where
-                        columns are patients and genes are rows) [0 = not
-                        mutated, and 1 = mutated]
-  -mscv MUTSIG2_CV, --mutsig2_cv MUTSIG2_CV
-                        Path to a MutSig2CV2 output file
-  -pp PERM_PV, --perm_pv PERM_PV
-                        Permuted p-value FDR BH corrected cutoff (default =
-                        0.1)
+                        Label for Entrez ID column in GISTIC gene data file (default = 'Gene ID')
+  -tf THRESH_FILE, --thresh_file THRESH_FILE
+                        Path to the GISTIC all_thresholded file (default = all_thresholded.by_genes.txt)
+  -gt GISTIC_THRESHOLD, --gistic_threshold GISTIC_THRESHOLD
+                        Cutoff value for amplifications and deletions applied to the GISTIC all_thresholded file (default = 2)
+  -pam PAM_FILE, --pam_file PAM_FILE
+                        Path to the protein affecting mutation (PAM) file (CSV matrix where columns are patients and genes are
+                        rows) [0 = not mutated, and 1 = mutated]
+  -mscv MUTSIG2CV_FILE, --mutsig2cv_file MUTSIG2CV_FILE
+                        Path to a MutSig2CV output file
+  -fus FUSIONS_FILE, --fusions_file FUSIONS_FILE
+                        Path to the gene fusions file (CSV matrix where columns are patients and genes are rows) [0 = not
+                        fused, and 1 = fused]
   -op OUTPUT_PATH, --output_path OUTPUT_PATH
-                        Path you would like to output OncoMerged files
-                        (default = current directory)
-```
+                        Path you would like to output OncoMerged files (default = current directory)
+  -mmf MIN_MUT_FREQ, --min_mut_freq MIN_MUT_FREQ
+                        Minimum frequency of mutation (range = 0-1; default = 0.05)
+  -pq PERM_QV, --perm_qv PERM_QV
+                        Permuted p-value FDR BH corrected cutoff (default = 0.1)
+  -sp, --save_permutation
+                        Run and save out permutation analysis to be used for comparability in another OncoMerge run (default
+                        off)
+  -lp LOAD_PERMUTATION, --load_permutation LOAD_PERMUTATION
+                        Do not run permutation anlaysis and load permutation anlaysis from previous run (default off)
+  -mlg MIN_LOCI_GENES, --min_loci_genes MIN_LOCI_GENES
+                        Minimum number of genes in loci to apply maximum final frequency filter (default = 10)
+  -mpf MIN_PAM_FREQ, --min_pam_freq MIN_PAM_FREQ
+                        Minimum PAM frequency (default = 0.01)
+  -tcga TCGA, --tcga TCGA
+                        Clip gistic TCGA names.
+  -bl BLOCKLIST, --blocklist BLOCKLIST
+                        List of patients (one per line) to exclude for frequency calculations.
+ ```
 
 # Output
 There are three output files from OncoMerge:
- 1. *_CNA_loci.csv - a file which holds the loci included in the run
- 2. *_LoF_GoF_sig.csv - a file which holds the permutation analysis from the LoFs and GoFs
- 3. *_finalMutFile_deep_filtered_mf_*.csv - the merged PAM and CNA matrix file (patients are the columns, and the rows are the merged somatic mutations)
+ 1. background.json - set of genes tested for hypergeometric/Fisher's exact tests
+ 2. oncoMerge_ActLofPermPV.csv - permuted p-values
+ 3. oncomerge_CNA_loci.csv - a file which holds the loci included in the run
+ 4. oncoMerge_mergedMuts.csv - integrated somatic mutation matrix with patients as columns and genes are rows
+ 5. oncoMerge_summaryMatrix.csv - collection of all information integrated to generate the integrated somatic mutation matrices
+ 
+ ### Optional output
+ To facilitate comparisons the permutation data can be saved out using the --save_permutaton parameters, and loaded back up as needed with --load_permutation options. Which will generate:
+ - oncomerge_ampPerm.npy
+ - oncomerge_delPerm.npy
