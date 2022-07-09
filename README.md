@@ -8,6 +8,7 @@ Installation requires installing Python dependencies. Most of the dependencies a
 In Anaconda:
  - pandas
  - numpy
+
 From PyPI only:
  - statsmodels (2.1.0)
  - tqdm
