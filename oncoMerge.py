@@ -31,10 +31,7 @@ from statsmodels.stats.multitest import multipletests # pip install statsmodels=
 import itertools
 import sys
 import os
-from scipy.stats import hypergeom
 from tqdm import tqdm
-#import mygene
-#mg = mygene.MyGeneInfo() # pull in function to map genes
 
 ##################################
 ## Read in command line options ##
