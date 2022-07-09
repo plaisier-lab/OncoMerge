@@ -1,6 +1,30 @@
 # OncoMerge
 Software to integrate somatic protein affecting mutations (PAMs) gene fusions, and copy number alterations (CNAs) for downstream computational analyses.
 
+# Installation
+Installation requires installing Python dependencies. Most of the dependencies are met by installing Anaconda (https://www.anaconda.com/). 
+
+## Dependencies
+In Anaconda:
+ - pandas
+ - numpy
+From PyPI only:
+ - statsmodels (2.1.0)
+ - tqdm
+
+### Command to install dependencies:
+```
+pip install pandas numpy statsmodels==0.10.0 tqdm
+```
+## Test our installed packages:
+```
+python
+import pandas
+import numpy
+import statsmodels
+import tqdm
+```
+
 # Input
 - PAM:
   - Somatic mutation matrix
