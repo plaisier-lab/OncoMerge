@@ -71,7 +71,6 @@ A low-pass genomic filter was applied to each CNA locus if the CNA locus had ≥
 
 # Microsatellite hypermutation censoring (MHC) filter
 The TCGA tumors used in this study have been characterized for both MSI [PMID = 29850653] and hypermutation [PMID = 29625053] (Supplementary Table 1). The tumors with MSI or hypermutation are loaded as a blocklist of patient IDs through a command line parameter ('-bl' or '--blocklist'). All tumors in the blocklist are excluded from consideration by the PQ and MFF filters while determining the genes to include in the final somatic mutation matrix. The mutation status for blocklist tumors are included in the final integrated mutation matrix.
-![image](https://user-images.githubusercontent.com/302292/178144725-d114b523-3cf0-4c95-9335-c44b59af4a8b.png)
 
 # Usage
 From the command line -h or --help will provide the usage. Parameters can be given either as a config file formatted in JSON as entries with command line argument names as keys in a dictionary, or as named comand line parameters:
