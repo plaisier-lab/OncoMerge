@@ -51,7 +51,7 @@ An essential first step in OncoMerge is loading up and binarizing the somatic mu
  - Act matrix – The Act matrix is the bitwise OR combination of the PAM, Fusion, and CNAamp matrices. The Act matrix has genes as rows and patients as columns. The matrix values are [0 or 1]: zero indicates the gene is not mutated or amplified in a patient tumor, and one indicates the gene is either mutated, fused, amplified, or some combination in a patient tumor.
  - LoF matrix – The LoF matrix is the bitwise OR combination of the PAM, Fusion, and CNAdel matrices. The LoF matrix has genes as rows and patients as columns. The matrix values are [0 or 1]:  zero indicates the gene is not mutated or deleted in a patient tumor, and one indicates the gene is either mutated, fused, deleted, or some combination in a patient tumor.\
  
-#### Example data
+#### Example input data
 The [TCGA OncoMerge input data](https://doi.org/10.6084/m9.figshare.21760964.v1) can be downloaded from Figshare.
 
 ### Seeding OncoMerge with putative somatic mutations
