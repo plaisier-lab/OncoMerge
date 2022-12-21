@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/174599780.svg)](https://zenodo.org/badge/latestdoi/174599780)
+
 # OncoMerge
 Software to integrate somatic protein affecting mutations (PAMs) gene fusions, and copy number alterations (CNAs) for downstream computational analyses.
 
@@ -49,7 +51,10 @@ An essential first step in OncoMerge is loading up and binarizing the somatic mu
     - CNAamp matrix – The matrix values are [0 or 1]:  zero indicates a gene is not amplified in a patient tumor, and one indicates the gene is amplified in a patient tumor.
     - CNAdel matrix – The matrix values are [0 or 1]:  zero indicates a gene is not deleted in a patient tumor, and one indicates a gene is deleted in a patient tumor.
  - Act matrix – The Act matrix is the bitwise OR combination of the PAM, Fusion, and CNAamp matrices. The Act matrix has genes as rows and patients as columns. The matrix values are [0 or 1]: zero indicates the gene is not mutated or amplified in a patient tumor, and one indicates the gene is either mutated, fused, amplified, or some combination in a patient tumor.
- - LoF matrix – The LoF matrix is the bitwise OR combination of the PAM, Fusion, and CNAdel matrices. The LoF matrix has genes as rows and patients as columns. The matrix values are [0 or 1]:  zero indicates the gene is not mutated or deleted in a patient tumor, and one indicates the gene is either mutated, fused, deleted, or some combination in a patient tumor.
+ - LoF matrix – The LoF matrix is the bitwise OR combination of the PAM, Fusion, and CNAdel matrices. The LoF matrix has genes as rows and patients as columns. The matrix values are [0 or 1]:  zero indicates the gene is not mutated or deleted in a patient tumor, and one indicates the gene is either mutated, fused, deleted, or some combination in a patient tumor.\
+ 
+#### Example input data
+The [TCGA OncoMerge input data](https://doi.org/10.6084/m9.figshare.21760964.v1) can be downloaded from Figshare.
 
 ### Seeding OncoMerge with putative somatic mutations
 OncoMerge focuses on likely causal somatic mutations by considering only somatic mutations that were statistically shown to be mutated more often than expected by chance alone. These statistically significant mutations were used as seeds for OncoMerge integration. Somatic PAMs used as seeds were identified with [MutSigCV2](https://pubmed.ncbi.nlm.nih.gov/25770567/) q-values less than or equal to 0.1 and a mutation frequency greater than 5%. Gene fusions used as seeds were identified as significant in [PRADA](https://pubmed.ncbi.nlm.nih.gov/29099951/) and a mutation frequency greater than 5%. CNAamps or CNAdels used as seeds were identified as significantly amplified or deleted from the amplified genes (amp_genes) or deleted genes (del_genes) GISTIC output files with residual q-values less than or equal to 0.05. CNAs from sex chromosomes (X and Y) were excluded. Genes from sex chromosomes can enter OncoMerge as seeds from PAMs or fusions. These seed genes become the starting point of the OncoMerge integration. Subsequent steps determine if Act or LoF merged mutation profiles or their component PAM, Fusion, CNAamp, or CNAdel mutation roles are the most appropriate integration model for a gene.
