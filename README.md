@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/197803088.svg)](https://zenodo.org/badge/latestdoi/197803088)
+[![DOI](https://zenodo.org/badge/174599780.svg)](https://zenodo.org/badge/latestdoi/174599780)
 
 # OncoMerge
 Software to integrate somatic protein affecting mutations (PAMs) gene fusions, and copy number alterations (CNAs) for downstream computational analyses.
