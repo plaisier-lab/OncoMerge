@@ -59,7 +59,7 @@ parser.add_argument('-mmf', '--min_mut_freq', help='Minimum frequency of mutatio
 parser.add_argument('-pq', '--perm_qv', help='Permuted p-value FDR BH corrected cutoff (default = 0.1)', type = float, default = 0.1)
 parser.add_argument('-sp', '--save_permutation', help='Run and save out permutation analysis to be used for comparability in another OncoMerge run (default off)', action='store_true')
 parser.add_argument('-lp', '--load_permutation', help='Do not run permutation anlaysis and load permutation anlaysis from previous run (default off)', type = str, default = None)
-parser.add_argument('-mlg', '--min_loci_genes', help='Minimum number of genes in loci to apply maximum final frequency filter (default = 10)', type = int, default = 10)
+parser.add_argument('-mlg', '--max_loci_genes', help='Number of genes in loci that triggers the maximum final frequency filter (default = 10)', type = int, default = 10)
 parser.add_argument('-tcga', '--tcga', help='Clip gistic TCGA names.', type = bool, default = False)
 parser.add_argument('-bl', '--blocklist', help='List of patients (one per line) to exclude for frequency calculations.', type = str, default='none')
 args = parser.parse_args()
@@ -648,7 +648,7 @@ for mut in keepDel+keepAmp:
 keepLofAct1 = []
 for locus in combinedLoci.keys():
     # Don't filter further with maximum final frequency filter
-    if len(combinedLoci[locus]) < params['min_loci_genes']:
+    if len(combinedLoci[locus]) < params['max_loci_genes']:
         keepLofAct1 += combinedLoci[locus]
         for mut in combinedLoci[locus]:
             gene, mutType = mut.split('_')
