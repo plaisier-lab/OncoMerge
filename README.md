@@ -163,7 +163,7 @@ python3 oncoMerge.py \
             -op output/BLCA/pq_mff \
             -pq 0.1 \
             -mlg 10 \
-            -lp test_data/output_11_4_2022/BLCA/no_filter \
+            -lp output/BLCA/no_filter \
             -tcga True \
             -bl test_data/blocklist/blocklist_29850653_29625053.csv
 ```
