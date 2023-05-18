@@ -140,6 +140,33 @@ optional arguments:
   -bl BLOCKLIST, --blocklist BLOCKLIST
                         List of patients (one per line) to exclude for frequency calculations.
  ```
+## Running on TCGA bladder carcinoma (BLCA) test data from figshare
+Clone the OncoMerge github directory. Download and untar the TCGA BLCA dataset from figshare inside the OncoMerge github directory:
+```
+git clone https://github.com/plaisier-lab/OncoMerge.git
+cd OncoMerge
+wget https://figshare.com/ndownloader/files/40671497 -O test.tgz
+tar xvzf test.tgz
+```
+Make a directory to hold the output for OncoMerge:
+```
+mkdir output
+```
+Then run this command to execute OncoMerge on the TCGA BLCA test data:
+```
+python3 oncoMerge.py \
+            -gp test_data/GISTIC/BLCA \
+            -aaf test_data/OncoMerge_input_g2e_converter.csv \
+            -ln "Locus ID" -pam test_data/PAM/BLCA_somMutMC3.csv \
+            -mscv test_data/MutSig2cv/BLCA_sig2cv.csv \
+            -fus test_data/FUSIONS/BLCA_fusions.csv \
+            -op output/BLCA/pq_mff \
+            -pq 0.1 \
+            -mlg 10 \
+            -lp test_data/output_11_4_2022/BLCA/no_filter \
+            -tcga True \
+            -bl test_data/blocklist/blocklist_29850653_29625053.csv
+```
  
 ## Output
 OncoMerge provides four output files that provide valuable information about the integration process and the final integrated mutation matrix that can be used in downstream studies. Here is a brief description of each file and its contents:
