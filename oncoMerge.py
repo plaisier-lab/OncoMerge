@@ -726,9 +726,9 @@ keepLoc_dict = {}
 for locus1 in set(['_'.join([i.split('_')[0],i.split('_')[-1]]) for i in keepLoc]):
     locus2 = locus1.split('_')[0]
     if locus2 in ampLoci.keys():
-        keepLoc_dict[locus1] = posD1.loc[set(posD1.index).intersection(ampLoci[locus2])]
+        keepLoc_dict[locus1] = posD1.loc[list(set(posD1.index).intersection(ampLoci[locus2]))]
     if locus2 in delLoci.keys():
-        keepLoc_dict[locus1] = negD1.loc[set(posD1.index).intersection(delLoci[locus2])]
+        keepLoc_dict[locus1] = negD1.loc[list(set(posD1.index).intersection(delLoci[locus2]))]
 
 def mode2(pat1col):
     tmpser = pat1col.mode()
