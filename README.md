@@ -172,22 +172,23 @@ python3 oncoMerge.py \
 ```
 ### Run with configuration json file:
 Make a json file with configuration parameters:
-test.json
-```json
-{
-    "gistic_path": "test_data/GISTIC/BLCA",
-    "alternate_annotation_file": "test_data/OncoMerge_input_g2e_converter.csv",
-    "label_name": "Locus ID",
-    "pam_file": "test_data/PAM/BLCA_somMutMC3.csv",
-    "mutsig2cv_file": "test_data/MutSig2cv/BLCA_sig2cv.csv",
-    "fusions_file": "test_data/FUSIONS/BLCA_fusions.csv",
-    "output_path": "output_BLCA",
-    "permqv": 0.1,
-    "max_loci_genes": 10,
-    "tcga": true,
-    "blocklist": "test_data/blocklist/blocklist_29850653_29625053.csv"
-}
-```
+> #### test.json
+> ```json
+> {
+>     "gistic_path": "test_data/GISTIC/BLCA",
+>     "alternate_annotation_file": "test_data/OncoMerge_input_g2e_converter.csv",
+>     "label_name": "Locus ID",
+>     "pam_file": "test_data/PAM/BLCA_somMutMC3.csv",
+>     "mutsig2cv_file": "test_data/MutSig2cv/BLCA_sig2cv.csv",
+>     "fusions_file": "test_data/FUSIONS/BLCA_fusions.csv",
+>     "output_path": "output_BLCA",
+>     "permqv": 0.1,
+>     "max_loci_genes": 10,
+>     "tcga": true,
+>     "blocklist": "test_data/blocklist/blocklist_29850653_29625053.csv"
+> }
+> ```
+
 Then run this command to execute OncoMerge on the TCGA BLCA test data:
 ```console
 python3 oncoMerge.py -cf test.json
