@@ -152,21 +152,45 @@ Make a directory to hold the output for OncoMerge:
 ```
 mkdir output
 ```
+### Run with command line parameters:
 Then run this command to execute OncoMerge on the TCGA BLCA test data:
 ```
 python3 oncoMerge.py \
             -gp test_data/GISTIC/BLCA \
             -aaf test_data/OncoMerge_input_g2e_converter.csv \
-            -ln "Locus ID" -pam test_data/PAM/BLCA_somMutMC3.csv \
+            -ln "Locus ID" \
+            -pam test_data/PAM/BLCA_somMutMC3.csv \
             -mscv test_data/MutSig2cv/BLCA_sig2cv.csv \
             -fus test_data/FUSIONS/BLCA_fusions.csv \
-            -op output/BLCA \
+            -op output_BLCA \
             -pq 0.1 \
             -mlg 10 \
             -tcga True \
             -bl test_data/blocklist/blocklist_29850653_29625053.csv
 ```
- 
+### Run with configuration json file:
+Make a json file with configuration parameters:
+test.json
+```json
+{
+    "gistic_path": "test_data/GISTIC/BLCA",
+    "alternate_annotation_file": "test_data/OncoMerge_input_g2e_converter.csv",
+    "label_name": "Locus ID",
+    "pam_file": "test_data/PAM/BLCA_somMutMC3.csv",
+    "mutsig2cv_file": "test_data/MutSig2cv/BLCA_sig2cv.csv",
+    "fusions_file": "test_data/FUSIONS/BLCA_fusions.csv",
+    "output_path": "output_BLCA",
+    "permqv": 0.1,
+    "max_loci_genes": 10,
+    "tcga": true,
+    "blocklist": "test_data/blocklist/blocklist_29850653_29625053.csv"
+}
+```
+Then run this command to execute OncoMerge on the TCGA BLCA test data:
+```
+python3 oncoMerge.py -cf test.json
+```
+
 ## Output
 OncoMerge provides four output files that provide valuable information about the integration process and the final integrated mutation matrix that can be used in downstream studies. Here is a brief description of each file and its contents:
  - oncoMerge_mergedMuts.csv – The integrated mutation matrix is comprised of genes (rows) by patient tumors (columns) of mutation status after integration by OncoMerge. The matrix values are [0 or 1]:  zero indicates that the gene is not mutated in a patient tumor, and one indicates that the gene was mutated in a patient tumor.
