@@ -19,12 +19,14 @@ From PyPI only:
  - tqdm
 
 #### Command to install dependencies:
-```
+```sh
 pip install pandas numpy statsmodels==0.10.0 tqdm
 ```
 #### Test out installed packages:
-```
+```sh
 python
+```
+```python
 import pandas
 import numpy
 import statsmodels
@@ -83,7 +85,7 @@ The TCGA tumors used in this study have been characterized for both [MSI](https:
 
 ## Usage
 From the command line -h or --help will provide the usage. Parameters can be given either as a config file formatted in JSON as entries with command line argument names as keys in a dictionary, or as named comand line parameters:
-```
+```sh
 usage: oncoMerge.py [-h] [-cf CONFIG_FILE] [-gp GISTIC_PATH] [-df DEL_FILE] [-af AMP_FILE] [-gdf GENE_DATA_FILE]
                     [-aaf ALTERNATE_ANNOTATION_FILE] [-ln LABEL_NAME] [-tf THRESH_FILE] [-gt GISTIC_THRESHOLD] [-pam PAM_FILE]
                     [-mscv MUTSIG2CV_FILE] [-fus FUSIONS_FILE] [-op OUTPUT_PATH] [-mmf MIN_MUT_FREQ] [-pq PERM_QV] [-sp]
@@ -142,19 +144,19 @@ optional arguments:
  ```
 ## Running on TCGA bladder carcinoma (BLCA) test data from figshare
 Clone the OncoMerge github directory. Download and untar the TCGA BLCA dataset from figshare inside the OncoMerge github directory:
-```
+```sh
 git clone https://github.com/plaisier-lab/OncoMerge.git
 cd OncoMerge
 wget https://figshare.com/ndownloader/files/40671497 -O test.tgz
 tar xvzf test.tgz
 ```
 Make a directory to hold the output for OncoMerge:
-```
+```sh
 mkdir output
 ```
 ### Run with command line parameters:
 Then run this command to execute OncoMerge on the TCGA BLCA test data:
-```
+```sh
 python3 oncoMerge.py \
             -gp test_data/GISTIC/BLCA \
             -aaf test_data/OncoMerge_input_g2e_converter.csv \
@@ -187,7 +189,7 @@ test.json
 }
 ```
 Then run this command to execute OncoMerge on the TCGA BLCA test data:
-```
+```sh
 python3 oncoMerge.py -cf test.json
 ```
 
