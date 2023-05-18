@@ -3,6 +3,9 @@
 # OncoMerge
 Software to integrate somatic protein affecting mutations (PAMs) gene fusions, and copy number alterations (CNAs) for downstream computational analyses.
 
+## Citation
+Striker SS, Wilferd SF, Lewis EM, O'Connor SA, Plaisier CL. [Systematic integration of protein-affecting mutations, gene fusions, and copy number alterations into a comprehensive somatic mutational profile.](https://pubmed.ncbi.nlm.nih.gov/37159661/) Cell Rep Methods. 2023 Apr 4;3(4):100442. doi: 10.1016/j.crmeth.2023.100442. PMID: 37159661; PMCID: PMC10162952.
+
 ## Installation
 Installation requires installing Python dependencies. Most of the dependencies are met by installing Anaconda (https://www.anaconda.com/). 
 
