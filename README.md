@@ -160,10 +160,9 @@ python3 oncoMerge.py \
             -ln "Locus ID" -pam test_data/PAM/BLCA_somMutMC3.csv \
             -mscv test_data/MutSig2cv/BLCA_sig2cv.csv \
             -fus test_data/FUSIONS/BLCA_fusions.csv \
-            -op output/BLCA/pq_mff \
+            -op output/BLCA \
             -pq 0.1 \
             -mlg 10 \
-            -lp test_data/output_11_4_2022/BLCA/no_filter \
             -tcga True \
             -bl test_data/blocklist/blocklist_29850653_29625053.csv
 ```
